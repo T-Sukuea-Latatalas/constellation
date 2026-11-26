@@ -55,6 +55,11 @@
       width: 100%;
       height: 100%;
       touch-action: none;
+      cursor: crosshair;
+    }
+
+    body.view-mode canvas {
+      cursor: default !important;
     }
 
     .chrome {
@@ -414,7 +419,7 @@
       word-break: break-word;
     }
 
-    /* テキスト入力中（モバイルキーボード対策） */
+    /* テキスト入力中 */
     body.editing-text .dock,
     body.editing-text .plate-caption {
       opacity: 0;
@@ -433,7 +438,6 @@
       bottom: calc(36px + env(safe-area-inset-bottom));
     }
 
-    /* 右上に配置して下部キャプションとの干渉を防止 */
     .exit-view {
       position: fixed;
       top: calc(14px + env(safe-area-inset-top));
@@ -647,19 +651,19 @@
     let history = [];
     let nextId = 1;
 
-    // 背景微光星（正規化座標で初回のみ生成しリサイズ時のチラつきを防ぐ）
     let bgStars = [];
 
     let hoveredStar = null;
     let draggingStar = null;
-    let dragSnapshot = null; // 実際に移動した時だけ履歴に積むためのスナップショット
+    let dragSnapshot = null;
     let selectedStar = null;
     let downPos = { x: 0, y: 0 };
-    let pointerPos = { x: 0, y: 0 };
+    let pointerPos = { x: width / 2, y: height / 2 };
     let isPointerDown = false;
     let didMove = false;
     let activeTouchId = null;
     let isEditingText = false;
+    let isViewMode = false;
 
     function hexToRgba(hex, alpha) {
       const clean = hex.replace('#', '');
@@ -695,7 +699,6 @@
     }
 
     function resize() {
-      // モバイルキーボード表示中は星のスケールが変わらないようリサイズを保留
       if (isEditingText) return;
 
       const rect = canvas.getBoundingClientRect();
@@ -764,7 +767,7 @@
     }
 
     function undo() {
-      if (history.length === 0) return;
+      if (isViewMode || history.length === 0) return;
       const prev = history.pop();
       stars = prev.stars;
       lines = prev.lines;
@@ -833,6 +836,8 @@
     let toggledSameStarInDown = false;
 
     function handlePointerDown(pos) {
+      if (isViewMode) return;
+
       downPos = { x: pos.x, y: pos.y };
       pointerPos = { x: pos.x, y: pos.y };
       isPointerDown = true;
@@ -850,7 +855,6 @@
       } else if (mode === 'connect') {
         if (hit) {
           if (selectedStar && selectedStar.id === hit.id) {
-            // 同じ星をタップした場合、動かなければ onUp で選択解除する
             toggledSameStarInDown = true;
           } else if (selectedStar && selectedStar.id !== hit.id) {
             connectStars(selectedStar, hit);
@@ -881,7 +885,11 @@
     }
 
     function handlePointerMove(pos, isTouch) {
-      // 開始点からの累積距離で移動判定
+      if (isViewMode) {
+        hoveredStar = null;
+        return;
+      }
+
       if (isPointerDown && Math.hypot(pos.x - downPos.x, pos.y - downPos.y) > 6) {
         didMove = true;
       }
@@ -910,6 +918,13 @@
     function handlePointerUp() {
       if (!isPointerDown) return;
       isPointerDown = false;
+
+      if (isViewMode) {
+        draggingStar = null;
+        dragSnapshot = null;
+        toggledSameStarInDown = false;
+        return;
+      }
 
       if (mode === 'place') {
         if (draggingStar) {
@@ -944,12 +959,12 @@
       toggledSameStarInDown = false;
     }
 
-    // マウスイベント
     canvas.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
+      if (isViewMode || e.button !== 0) return;
       handlePointerDown(clientToCanvas(e.clientX, e.clientY));
     });
     window.addEventListener('mousemove', e => {
+      if (isViewMode) return;
       handlePointerMove(clientToCanvas(e.clientX, e.clientY), false);
     });
     window.addEventListener('mouseup', () => {
@@ -957,8 +972,8 @@
     });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // タッチイベント（最初の1本の指だけを追跡）
     canvas.addEventListener('touchstart', e => {
+      if (isViewMode) return;
       e.preventDefault();
       if (activeTouchId !== null) return;
       const t = e.changedTouches[0];
@@ -967,7 +982,7 @@
     }, { passive: false });
 
     window.addEventListener('touchmove', e => {
-      if (activeTouchId === null) return;
+      if (isViewMode || activeTouchId === null) return;
       for (const t of e.changedTouches) {
         if (t.identifier === activeTouchId) {
           e.preventDefault();
@@ -990,7 +1005,6 @@
     window.addEventListener('touchend', onTouchEndOrCancel);
     window.addEventListener('touchcancel', onTouchEndOrCancel);
 
-    // 座標グリッドと書き出し用フレーム
     function drawCelestialGrid(isExport = false) {
       if (!showGrid && !isExport) return;
       const cx = width / 2;
@@ -1037,7 +1051,6 @@
       ctx.restore();
     }
 
-    // テキスト自動折り返し計測（書き出し用）
     function wrapLines(text, maxWidth) {
       const result = [];
       for (const paragraph of text.split(/\r?\n/)) {
@@ -1071,7 +1084,6 @@
 
       drawCelestialGrid(isExport);
 
-      // 背景微光星
       for (const s of bgStars) {
         const twinkle = Math.sin(time * s.speed + s.phase) * 0.14;
         ctx.globalAlpha = Math.max(0.04, Math.min(0.8, s.alpha + twinkle));
@@ -1084,7 +1096,6 @@
 
       const starMap = new Map(stars.map(s => [s.id, s]));
 
-      // 星座線
       ctx.save();
       ctx.lineWidth = 1.15;
       ctx.strokeStyle = 'rgba(220, 228, 242, 0.58)';
@@ -1116,8 +1127,7 @@
         }
       }
 
-      // 結線中のガイド
-      if (!isExport && mode === 'connect' && selectedStar) {
+      if (!isExport && !isViewMode && mode === 'connect' && selectedStar) {
         const p1 = toScreen(selectedStar.nx, selectedStar.ny);
         ctx.setLineDash([3, 4]);
         ctx.strokeStyle = 'rgba(212, 180, 131, 0.72)';
@@ -1128,11 +1138,10 @@
       }
       ctx.restore();
 
-      // 恒星
       for (const s of stars) {
         const p = toScreen(s.nx, s.ny);
-        const isHovered = !isExport && hoveredStar && hoveredStar.id === s.id;
-        const isSelected = !isExport && selectedStar && selectedStar.id === s.id;
+        const isHovered = !isExport && !isViewMode && hoveredStar && hoveredStar.id === s.id;
+        const isSelected = !isExport && !isViewMode && selectedStar && selectedStar.id === s.id;
 
         ctx.save();
         const haloR = s.size * 4.2;
@@ -1172,7 +1181,6 @@
         ctx.restore();
       }
 
-      // PNG書き出し時の銘板
       if (isExport) {
         const m = Math.max(16, Math.min(28, width * 0.03));
         const title = nameInput.value.trim();
@@ -1225,6 +1233,7 @@
 
     // --- UI制御 ---
     function setMode(nextMode) {
+      if (isViewMode) return;
       mode = nextMode;
       selectedStar = null;
       draggingStar = null;
@@ -1246,18 +1255,15 @@
     });
 
     document.querySelectorAll('#spectralGroup .spectral-dot').forEach(dot => {
-      btnSelectDot(dot);
-    });
-
-    function btnSelectDot(dot) {
       dot.addEventListener('click', () => {
         document.querySelectorAll('#spectralGroup .spectral-dot').forEach(d => d.classList.remove('active'));
         dot.classList.add('active');
         currentColor = dot.dataset.color;
       });
-    }
+    });
 
     document.getElementById('scatterBtn').addEventListener('click', () => {
+      if (isViewMode) return;
       saveHistory();
       const colors = ['#f2f6ff', '#9ec5ff', '#ffe7ba', '#ffb88c'];
       const sizes = [5.2, 3.6, 3.6, 2.3, 2.3];
@@ -1277,7 +1283,7 @@
     undoBtn.addEventListener('click', undo);
 
     document.getElementById('clearBtn').addEventListener('click', () => {
-      if (stars.length === 0 && lines.length === 0) return;
+      if (isViewMode || (stars.length === 0 && lines.length === 0)) return;
       saveHistory();
       stars = [];
       lines = [];
@@ -1336,9 +1342,21 @@
     });
 
     function toggleViewMode(force) {
-      const next = force !== undefined ? force : !document.body.classList.contains('view-mode');
-      document.body.classList.toggle('view-mode', next);
-      selectedStar = null;
+      const next = force !== undefined ? force : !isViewMode;
+      isViewMode = next;
+      document.body.classList.toggle('view-mode', isViewMode);
+
+      if (isViewMode) {
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+        selectedStar = null;
+        draggingStar = null;
+        dragSnapshot = null;
+        hoveredStar = null;
+        isPointerDown = false;
+        activeTouchId = null;
+      }
     }
 
     document.getElementById('viewBtn').addEventListener('click', () => toggleViewMode(true));
@@ -1370,17 +1388,22 @@
 
     window.addEventListener('keydown', e => {
       if (document.activeElement === nameInput || document.activeElement === storyInput) return;
+
+      if (isViewMode) {
+        if (e.key.toLowerCase() === 'h' || e.key === 'Escape') {
+          toggleViewMode(false);
+        }
+        return;
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         undo();
       } else if (e.key === '1') setMode('place');
       else if (e.key === '2') setMode('connect');
       else if (e.key === '3') setMode('erase');
-      else if (e.key.toLowerCase() === 'h') toggleViewMode();
-      else if (e.key === 'Escape') {
-        if (document.body.classList.contains('view-mode')) toggleViewMode(false);
-        else selectedStar = null;
-      }
+      else if (e.key.toLowerCase() === 'h') toggleViewMode(true);
+      else if (e.key === 'Escape') selectedStar = null;
     });
 
     function initInitialChart() {
