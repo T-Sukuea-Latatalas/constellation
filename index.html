@@ -22,6 +22,7 @@
       --text-secondary: #8a93a6;
       --text-muted: #525a6b;
       --dock-offset: 84px;
+      --selbar-bottom: 64px;
       --font-serif: 'Shippori Mincho', serif;
       --font-sans: 'Noto Sans JP', sans-serif;
       --font-mono: 'IBM Plex Mono', monospace;
@@ -261,6 +262,65 @@
       color: var(--brass);
     }
 
+    /* 選択モード用フローティングバー（ドックの直上に配置） */
+    .selection-bar {
+      position: fixed;
+      bottom: var(--selbar-bottom);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 11;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      width: max-content;
+      max-width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    }
+
+    .selection-bar.visible {
+      display: flex;
+    }
+
+    .selection-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--brass);
+      padding: 0 4px;
+      white-space: nowrap;
+    }
+
+    .sel-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      padding: 4px 8px;
+      height: 26px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+
+    .sel-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-hover);
+    }
+
+    .sel-btn.danger {
+      color: var(--danger);
+      border-color: rgba(217, 124, 124, 0.35);
+      background: var(--danger-dim);
+    }
+
+    .sel-btn.danger:hover {
+      background: rgba(217, 124, 124, 0.25);
+    }
+
     /* 下部ドック（操作バー） */
     .dock {
       position: fixed;
@@ -341,7 +401,6 @@
       pointer-events: none;
     }
 
-    /* オプション群（等級・色 / 消しゴムサイズ） */
     .option-bar {
       display: flex;
       align-items: center;
@@ -349,7 +408,7 @@
     }
 
     .option-bar.muted {
-      opacity: 0.48;
+      opacity: 0.45;
     }
 
     .mag-group {
@@ -406,7 +465,6 @@
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22);
     }
 
-    /* 消しゴムサイズ選択（3段階） */
     .eraser-group {
       display: flex;
       align-items: center;
@@ -444,7 +502,6 @@
       display: block;
     }
 
-    /* 交点に星を追加 チェックボックス */
     .intersect-check {
       display: inline-flex;
       align-items: center;
@@ -504,7 +561,7 @@
       background: var(--brass-dim);
     }
 
-    /* 夜空のタイトル銘板（プレビュー表示） */
+    /* 夜空のタイトル銘板 */
     .plate-caption {
       position: fixed;
       bottom: var(--dock-offset);
@@ -535,14 +592,13 @@
       word-break: break-word;
     }
 
-    /* テキスト入力中 */
     body.editing-text .dock,
+    body.editing-text .selection-bar,
     body.editing-text .plate-caption {
       opacity: 0;
       pointer-events: none;
     }
 
-    /* 鑑賞モード */
     body.view-mode .chrome:not(.exit-view),
     body.view-mode .brand,
     body.view-mode .telemetry {
@@ -579,7 +635,7 @@
       flex-shrink: 0;
     }
 
-    @media (max-width: 980px) {
+    @media (max-width: 1024px) {
       .telemetry { display: none; }
       .dock-sep { display: none; }
       .dock {
@@ -593,7 +649,7 @@
       .inspector:not(.collapsed) {
         top: calc(48px + env(safe-area-inset-top));
         width: calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));
-        max-height: calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        max-height: calc(100dvh - 175px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
       }
       .tool-btn .label-text {
         display: none;
@@ -602,7 +658,7 @@
         display: inline;
       }
       .tool-btn {
-        padding: 5px 7px;
+        padding: 5px 6px;
       }
     }
   </style>
@@ -665,23 +721,34 @@
     <p id="captionStory"></p>
   </div>
 
+  <!-- 選択モード用コンテキストバー -->
+  <div class="chrome selection-bar" id="selectionBar">
+    <span class="selection-count" id="selectionCount">0個選択</span>
+    <button class="sel-btn" id="selectAllBtn" type="button">すべて選択</button>
+    <button class="sel-btn danger" id="deleteSelectedBtn" type="button" style="display:none;">選択を削除</button>
+    <button class="sel-btn" id="deselectAllBtn" type="button" style="display:none;">解除</button>
+  </div>
+
   <!-- 下部ツールバー -->
   <nav class="chrome dock" id="dock" aria-label="製図ツール">
-    <!-- 4つの独立モード -->
     <div class="dock-group">
       <button class="tool-btn active show-label" data-mode="place" type="button" title="長押しで位置を合わせ、離して星を置く (1)">
         <svg class="icon" viewBox="0 0 16 16"><path d="M8 2v3M8 11v3M2 8h3M11 8h3"/><circle cx="8" cy="8" r="1.4"/></svg>
         <span class="label-text">配置</span>
       </button>
-      <button class="tool-btn show-label" data-mode="move" type="button" title="既存の星を掴んで位置を調整する (2)">
+      <button class="tool-btn show-label" data-mode="move" type="button" title="星を1つ掴んで位置を調整する (2)">
         <svg class="icon" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M8 2l-2 2M8 2l2 2M8 14l-2-2M8 14l2-2M2 8l2-2M2 8l2 2M14 8l-2-2M14 8l-2 2"/></svg>
         <span class="label-text">移動</span>
       </button>
-      <button class="tool-btn show-label" data-mode="connect" type="button" title="星同士を繋ぐ (3)">
+      <button class="tool-btn show-label" data-mode="select" type="button" title="範囲選択やタップ選択でまとめて移動・削除 (3)">
+        <svg class="icon" viewBox="0 0 16 16"><path d="M2.5 5V2.5H5M11 2.5h2.5V5M2.5 11v2.5H5M11 13.5h2.5V11"/><path d="M6.8 2.5h2.4M6.8 13.5h2.4M2.5 6.8v2.4M13.5 6.8v2.4"/></svg>
+        <span class="label-text">選択</span>
+      </button>
+      <button class="tool-btn show-label" data-mode="connect" type="button" title="星同士を繋ぐ (4)">
         <svg class="icon" viewBox="0 0 16 16"><circle cx="3.5" cy="12" r="1.6"/><circle cx="12.5" cy="4" r="1.6"/><path d="M4.8 10.8L11.2 5.2"/></svg>
         <span class="label-text">結線</span>
       </button>
-      <button class="tool-btn show-label" data-mode="erase" type="button" title="押している間触れた星や線を消す (4)">
+      <button class="tool-btn show-label" data-mode="erase" type="button" title="押している間触れた星や線を消す (5)">
         <svg class="icon" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
         <span class="label-text">削除</span>
       </button>
@@ -705,7 +772,7 @@
     </div>
 
     <!-- 交点に星を追加チェックボックス -->
-    <label class="intersect-check" title="結線が既存の線と交差した位置に星を追加します">
+    <label class="intersect-check" title="結線や星の移動で交点が生まれた位置に星を追加します">
       <input type="checkbox" id="intersectCheck">
       <span>交点に星</span>
     </label>
@@ -768,6 +835,12 @@
     const ctx = canvas.getContext('2d');
 
     const dock = document.getElementById('dock');
+    const selectionBar = document.getElementById('selectionBar');
+    const selectionCountEl = document.getElementById('selectionCount');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+
     const inspector = document.getElementById('inspector');
     const inspectorToggle = document.getElementById('inspectorToggle');
     const chevronIcon = document.getElementById('chevronIcon');
@@ -788,7 +861,7 @@
     let height = window.innerHeight;
     let dpr = 1;
 
-    let mode = 'place'; // 'place' | 'move' | 'connect' | 'erase'
+    let mode = 'place'; // 'place' | 'move' | 'select' | 'connect' | 'erase'
     let currentSize = 3.6;
     let currentColor = '#f2f6ff';
     let eraserRadius = 22;
@@ -810,15 +883,27 @@
     let prevPos = { x: 0, y: 0 };
     let pointerPos = { x: width / 2, y: height / 2 };
     let didMove = false;
+    let shiftDownAtStart = false;
 
-    // モード別一時オブジェクト（離したら消える）
-    let placingStar = null;      // 配置モードで押下中の仮星
-    let draggingStar = null;     // 移動モードで掴んでいる星
+    // モード別一時状態
+    let placingStar = null;
+    let draggingStar = null;
     let dragSnapshot = null;
-    let selectedStar = null;     // 結線モードの起点
+
+    // 選択モード用状態
+    let selectedStarIds = new Set();
+    let isDraggingSelection = false;
+    let selectionDragOrigins = null; // Map<id, {nx, ny}>
+    let selectionBox = null;         // { x1, y1, x2, y2 }
+    let pressedStarInSelect = null;  // タップトグル判定用
+
+    // 結線モード用状態
+    let selectedStar = null;
     let toggledSameStarInDown = false;
-    let hoveredStar = null;      // マウス移動中かつ移動/結線モード時のみ
-    let eraseSnapshot = null;    // 消しゴム1ストローク分のスナップショット
+
+    // 削除・ホバー
+    let hoveredStar = null;
+    let eraseSnapshot = null;
     let eraseDidDelete = false;
 
     let isEditingText = false;
@@ -851,10 +936,32 @@
     }
 
     function syncDockMetric() {
-      const r = dock.getBoundingClientRect();
-      if (r.height === 0) return;
-      const offset = Math.max(0, height - r.top) + 18;
+      const dockRect = dock.getBoundingClientRect();
+      if (dockRect.height === 0) return;
+
+      const selBarBottom = Math.max(0, height - dockRect.top) + 8;
+      document.documentElement.style.setProperty('--selbar-bottom', `${selBarBottom}px`);
+
+      let topBound = dockRect.top;
+      if (selectionBar.classList.contains('visible')) {
+        const selRect = selectionBar.getBoundingClientRect();
+        if (selRect.height > 0) topBound = selRect.top;
+      }
+      const offset = Math.max(0, height - topBound) + 18;
       document.documentElement.style.setProperty('--dock-offset', `${offset}px`);
+    }
+
+    function syncSelectionUI() {
+      const showBar = !isViewMode && mode === 'select';
+      selectionBar.classList.toggle('visible', showBar);
+      if (showBar) {
+        const n = selectedStarIds.size;
+        selectionCountEl.textContent = n > 0 ? `${n}個選択中` : '範囲ドラッグ・タップで選択';
+        deleteSelectedBtn.style.display = n > 0 ? 'inline-flex' : 'none';
+        deselectAllBtn.style.display = n > 0 ? 'inline-flex' : 'none';
+        selectAllBtn.style.display = stars.length > 0 && n < stars.length ? 'inline-flex' : 'none';
+      }
+      requestAnimationFrame(syncDockMetric);
     }
 
     function resize() {
@@ -930,8 +1037,10 @@
       stars = prev.stars;
       lines = prev.lines;
       clearTransientStates();
+      selectedStarIds.clear();
       undoBtn.disabled = history.length === 0;
       updateTelemetry();
+      syncSelectionUI();
     }
 
     function clearTransientStates() {
@@ -940,6 +1049,10 @@
       placingStar = null;
       draggingStar = null;
       dragSnapshot = null;
+      isDraggingSelection = false;
+      selectionDragOrigins = null;
+      selectionBox = null;
+      pressedStarInSelect = null;
       selectedStar = null;
       toggledSameStarInDown = false;
       hoveredStar = null;
@@ -998,28 +1111,30 @@
       }
     }
 
-    // 結線＋交点に星を追加するロジック
-    function connectStars(s1, s2) {
-      if (!s1 || !s2 || s1.id === s2.id) return false;
-      if (lineExists(s1.id, s2.id)) return false;
+    // 1本の線分を追加しつつ、チェックがONなら交点に星を生成＆分割するコア関数
+    function insertLineWithIntersections(idA, idB) {
+      if (idA === idB || lineExists(idA, idB)) return;
+
+      const starMap = new Map(stars.map(s => [s.id, s]));
+      const s1 = starMap.get(idA);
+      const s2 = starMap.get(idB);
+      if (!s1 || !s2) return;
 
       if (!intersectCheck.checked) {
-        saveHistory();
-        lines.push({ from: s1.id, to: s2.id });
-        updateTelemetry();
-        return true;
+        lines.push({ from: idA, to: idB });
+        return;
       }
 
-      // 既存線との交点を探索
-      const starMap = new Map(stars.map(s => [s.id, s]));
       const x1 = s1.nx, y1 = s1.ny;
       const x2 = s2.nx, y2 = s2.ny;
       const eps = 1e-4;
+      const scale = getScale();
+      const mergeThresholdNorm = 8 / Math.max(scale, 1);
       const intersections = [];
 
       for (let i = 0; i < lines.length; i++) {
         const l = lines[i];
-        if (l.from === s1.id || l.from === s2.id || l.to === s1.id || l.to === s2.id) {
+        if (l.from === idA || l.from === idB || l.to === idA || l.to === idB) {
           continue;
         }
         const s3 = starMap.get(l.from);
@@ -1036,35 +1151,36 @@
         const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
 
         if (t > eps && t < 1 - eps && u > eps && u < 1 - eps) {
+          const ix = x1 + t * (x2 - x1);
+          const iy = y1 + t * (y2 - y1);
+
+          // 交点が2本線のどの端点にも極端に近すぎる場合は接触とみなし無視
+          const nearEndpoint = [s1, s2, s3, s4].some(
+            ep => Math.hypot(ep.nx - ix, ep.ny - iy) < mergeThresholdNorm
+          );
+          if (nearEndpoint) continue;
+
           intersections.push({
             lineIndex: i,
             t,
-            nx: x1 + t * (x2 - x1),
-            ny: y1 + t * (y2 - y1)
+            nx: ix,
+            ny: iy
           });
         }
       }
 
       if (intersections.length === 0) {
-        saveHistory();
-        lines.push({ from: s1.id, to: s2.id });
-        updateTelemetry();
-        return true;
+        lines.push({ from: idA, to: idB });
+        return;
       }
 
-      saveHistory();
-
-      // 新規線上の進行順に並べる
       intersections.sort((a, b) => a.t - b.t);
 
-      const scale = getScale();
-      const mergeThresholdNorm = 8 / Math.max(scale, 1);
       const linesToRemove = new Set();
       const splitAdditions = [];
-      const chainStarIds = [s1.id];
+      const chainStarIds = [idA];
 
       for (const hit of intersections) {
-        // 既存線分の端点以外の星とほぼ重なる場合は再利用する
         let starAtPoint = null;
         for (const existing of stars) {
           if (Math.hypot(existing.nx - hit.nx, existing.ny - hit.ny) < mergeThresholdNorm) {
@@ -1083,7 +1199,6 @@
           stars.push(starAtPoint);
         }
 
-        // 交差された既存線を交点星で2本に分割
         const origLine = lines[hit.lineIndex];
         linesToRemove.add(hit.lineIndex);
         if (origLine.from !== starAtPoint.id) {
@@ -1098,29 +1213,83 @@
         }
       }
 
-      if (chainStarIds[chainStarIds.length - 1] !== s2.id) {
-        chainStarIds.push(s2.id);
+      if (chainStarIds[chainStarIds.length - 1] !== idB) {
+        chainStarIds.push(idB);
       }
 
-      // 既存線の分割を反映
       lines = lines.filter((_, idx) => !linesToRemove.has(idx));
       for (const seg of splitAdditions) {
         addLineUnique(seg.from, seg.to);
       }
-      // 新規線を交点ごとに分割して追加
       for (let i = 0; i < chainStarIds.length - 1; i++) {
         addLineUnique(chainStarIds[i], chainStarIds[i + 1]);
       }
+    }
 
+    // 結線モードでの線分追加
+    function connectStars(s1, s2) {
+      if (!s1 || !s2 || s1.id === s2.id) return false;
+      if (lineExists(s1.id, s2.id)) return false;
+      saveHistory();
+      insertLineWithIntersections(s1.id, s2.id);
       updateTelemetry();
       return true;
     }
 
-    // 消しゴム削除実行（前フレーム〜現フレームの軌跡にあるオブジェクトを削除）
+    // 移動後の星（単体または複数）に繋がっている線の交点を解決する
+    function resolveIntersectionsForMovedStars(movedStarIdSet) {
+      if (!intersectCheck.checked || movedStarIdSet.size === 0) return;
+
+      const affectedLines = [];
+      const staticLines = [];
+      for (const l of lines) {
+        if (movedStarIdSet.has(l.from) || movedStarIdSet.has(l.to)) {
+          affectedLines.push(l);
+        } else {
+          staticLines.push(l);
+        }
+      }
+
+      if (affectedLines.length === 0) return;
+
+      lines = staticLines;
+      for (const l of affectedLines) {
+        insertLineWithIntersections(l.from, l.to);
+      }
+      updateTelemetry();
+    }
+
+    // 選択中の星を一括削除
+    function deleteSelectedStars() {
+      if (selectedStarIds.size === 0) return;
+      saveHistory();
+      stars = stars.filter(s => !selectedStarIds.has(s.id));
+      lines = lines.filter(l => !selectedStarIds.has(l.from) && !selectedStarIds.has(l.to));
+      selectedStarIds.clear();
+      updateTelemetry();
+      syncSelectionUI();
+    }
+
+    // 範囲ボックス内の星を取得
+    function getStarsInBox(box) {
+      const minX = Math.min(box.x1, box.x2);
+      const maxX = Math.max(box.x1, box.x2);
+      const minY = Math.min(box.y1, box.y2);
+      const maxY = Math.max(box.y1, box.y2);
+      const ids = [];
+      for (const s of stars) {
+        const p = toScreen(s.nx, s.ny);
+        if (p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY) {
+          ids.push(s.id);
+        }
+      }
+      return ids;
+    }
+
+    // 消しゴム削除実行
     function eraseAlongStroke(fromPos, toPos) {
       const deletedStarIds = new Set();
 
-      // 1. 範囲内の星を検出
       for (const s of stars) {
         const p = toScreen(s.nx, s.ny);
         const hitDist = distToSegment(p.x, p.y, fromPos.x, fromPos.y, toPos.x, toPos.y);
@@ -1133,13 +1302,13 @@
       if (deletedStarIds.size > 0) {
         stars = stars.filter(s => !deletedStarIds.has(s.id));
         lines = lines.filter(l => !deletedStarIds.has(l.from) && !deletedStarIds.has(l.to));
+        deletedStarIds.forEach(id => selectedStarIds.delete(id));
         if (selectedStar && deletedStarIds.has(selectedStar.id)) {
           selectedStar = null;
         }
         changed = true;
       }
 
-      // 2. 範囲内の線を検出
       const starMap = new Map(stars.map(s => [s.id, s]));
       const remainingLines = [];
       for (const l of lines) {
@@ -1175,11 +1344,7 @@
     }
 
     function updateCursor(isTouch) {
-      if (isViewMode) {
-        canvas.style.cursor = 'default';
-        return;
-      }
-      if (isTouch) {
+      if (isViewMode || isTouch) {
         canvas.style.cursor = 'default';
         return;
       }
@@ -1187,6 +1352,11 @@
         canvas.style.cursor = 'crosshair';
       } else if (mode === 'move') {
         canvas.style.cursor = draggingStar ? 'grabbing' : (hoveredStar ? 'grab' : 'default');
+      } else if (mode === 'select') {
+        if (isDraggingSelection) canvas.style.cursor = 'grabbing';
+        else if (selectionBox) canvas.style.cursor = 'crosshair';
+        else if (hoveredStar) canvas.style.cursor = selectedStarIds.has(hoveredStar.id) ? 'grab' : 'pointer';
+        else canvas.style.cursor = 'crosshair';
       } else if (mode === 'connect') {
         canvas.style.cursor = hoveredStar ? 'pointer' : 'crosshair';
       } else if (mode === 'erase') {
@@ -1206,6 +1376,7 @@
       isPointerDown = true;
       isPointerInside = true;
       didMove = false;
+      shiftDownAtStart = !!e.shiftKey;
 
       const pos = clientToCanvas(e.clientX, e.clientY);
       downPos = { x: pos.x, y: pos.y };
@@ -1213,8 +1384,9 @@
       pointerPos = { x: pos.x, y: pos.y };
       updateTelemetry();
 
+      const touchHitThreshold = lastPointerType === 'touch' ? 28 : 22;
+
       if (mode === 'place') {
-        // 長押し移動できる仮星を即座に出現させる
         const norm = toNorm(pos.x, pos.y);
         placingStar = {
           nx: norm.nx,
@@ -1223,13 +1395,35 @@
           color: currentColor
         };
       } else if (mode === 'move') {
-        const hit = findStarAt(pos.x, pos.y, lastPointerType === 'touch' ? 28 : 22);
+        const hit = findStarAt(pos.x, pos.y, touchHitThreshold);
         if (hit) {
           draggingStar = hit;
           dragSnapshot = cloneState();
         }
+      } else if (mode === 'select') {
+        const hit = findStarAt(pos.x, pos.y, touchHitThreshold);
+        pressedStarInSelect = hit;
+        if (hit) {
+          // 既に選択済みの星を掴んだらまとめて移動準備
+          if (selectedStarIds.has(hit.id)) {
+            isDraggingSelection = true;
+            dragSnapshot = cloneState();
+            selectionDragOrigins = new Map();
+            for (const s of stars) {
+              if (selectedStarIds.has(s.id)) {
+                selectionDragOrigins.set(s.id, { nx: s.nx, ny: s.ny });
+              }
+            }
+          } else {
+            // 未選択の星：そのままドラッグすれば単体移動、タップなら追加選択
+            dragSnapshot = cloneState();
+          }
+        } else {
+          // 空白からドラッグしたら範囲選択ボックス
+          selectionBox = { x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y };
+        }
       } else if (mode === 'connect') {
-        const hit = findStarAt(pos.x, pos.y, lastPointerType === 'touch' ? 28 : 22);
+        const hit = findStarAt(pos.x, pos.y, touchHitThreshold);
         toggledSameStarInDown = false;
         if (hit) {
           if (selectedStar && selectedStar.id === hit.id) {
@@ -1258,11 +1452,9 @@
         return;
       }
 
-      // タッチで押下していない時は完全に無視（離した後に判定を残さない）
       if (e.pointerType !== 'mouse' && (!isPointerDown || e.pointerId !== activePointerId)) {
         return;
       }
-      // 別の指の移動を無視
       if (isPointerDown && e.pointerId !== activePointerId) {
         return;
       }
@@ -1281,8 +1473,7 @@
       pointerPos = { x: pos.x, y: pos.y };
       updateTelemetry();
 
-      // ホバー判定はマウスの非押下時（移動・結線モード）のみ
-      if (!isTouch && !isPointerDown && (mode === 'move' || mode === 'connect')) {
+      if (!isTouch && !isPointerDown && (mode === 'move' || mode === 'connect' || mode === 'select')) {
         hoveredStar = findStarAt(pos.x, pos.y, 22);
       } else if (!isTouch && isPointerDown && mode === 'connect') {
         hoveredStar = findStarAt(pos.x, pos.y, 26);
@@ -1299,6 +1490,33 @@
           const norm = toNorm(pos.x, pos.y);
           draggingStar.nx = norm.nx;
           draggingStar.ny = norm.ny;
+        } else if (mode === 'select') {
+          if (pressedStarInSelect && didMove) {
+            // 未選択だった星をそのままドラッグし始めた場合、それだけを選択して移動に切り替え
+            if (!isDraggingSelection) {
+              selectedStarIds = new Set([pressedStarInSelect.id]);
+              isDraggingSelection = true;
+              selectionDragOrigins = new Map([[
+                pressedStarInSelect.id,
+                { nx: pressedStarInSelect.nx, ny: pressedStarInSelect.ny }
+              ]]);
+              syncSelectionUI();
+            }
+            const downNorm = toNorm(downPos.x, downPos.y);
+            const currNorm = toNorm(pos.x, pos.y);
+            const dnx = currNorm.nx - downNorm.nx;
+            const dny = currNorm.ny - downNorm.ny;
+            for (const s of stars) {
+              const orig = selectionDragOrigins.get(s.id);
+              if (orig) {
+                s.nx = orig.nx + dnx;
+                s.ny = orig.ny + dny;
+              }
+            }
+          } else if (selectionBox) {
+            selectionBox.x2 = pos.x;
+            selectionBox.y2 = pos.y;
+          }
         } else if (mode === 'erase') {
           eraseAlongStroke(prevPos, pos);
         }
@@ -1319,7 +1537,6 @@
 
       if (!isViewMode && !isCancel) {
         if (mode === 'place' && placingStar) {
-          // 離した場所に星を確定配置
           saveHistory();
           stars.push({
             id: nextId++,
@@ -1332,14 +1549,38 @@
         } else if (mode === 'move' && draggingStar) {
           if (didMove && dragSnapshot) {
             pushSnapshot(dragSnapshot);
+            resolveIntersectionsForMovedStars(new Set([draggingStar.id]));
           }
+        } else if (mode === 'select') {
+          if (isDraggingSelection && didMove) {
+            if (dragSnapshot) {
+              pushSnapshot(dragSnapshot);
+              resolveIntersectionsForMovedStars(new Set(selectedStarIds));
+            }
+          } else if (pressedStarInSelect && !didMove) {
+            // 星をタップ：選択の追加・解除トグル
+            if (selectedStarIds.has(pressedStarInSelect.id)) {
+              selectedStarIds.delete(pressedStarInSelect.id);
+            } else {
+              selectedStarIds.add(pressedStarInSelect.id);
+            }
+          } else if (selectionBox) {
+            if (didMove) {
+              const hitIds = getStarsInBox(selectionBox);
+              if (!shiftDownAtStart) selectedStarIds.clear();
+              hitIds.forEach(id => selectedStarIds.add(id));
+            } else {
+              // 空白タップ：全選択解除
+              selectedStarIds.clear();
+            }
+          }
+          syncSelectionUI();
         } else if (mode === 'connect') {
           if (didMove && selectedStar) {
             const target = findStarAt(pos.x, pos.y, isTouch ? 30 : 26);
             if (target && target.id !== selectedStar.id) {
               connectStars(selectedStar, target);
             }
-            // ドラッグ終了後は選択状態を残さない
             selectedStar = null;
           } else if (!didMove && toggledSameStarInDown) {
             selectedStar = null;
@@ -1351,10 +1592,13 @@
         }
       }
 
-      // 離した後は押下中の一時状態・タッチホバー判定をすべてクリア
       placingStar = null;
       draggingStar = null;
       dragSnapshot = null;
+      isDraggingSelection = false;
+      selectionDragOrigins = null;
+      selectionBox = null;
+      pressedStarInSelect = null;
       toggledSameStarInDown = false;
       eraseSnapshot = null;
       eraseDidDelete = false;
@@ -1381,7 +1625,6 @@
     });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // 座標グリッドと書き出し用フレーム
     function drawCelestialGrid(isExport = false) {
       if (!showGrid && !isExport) return;
       const cx = width / 2;
@@ -1544,7 +1787,7 @@
         }
       }
 
-      // 結線ガイド線は「押下ドラッグ中のみ」描画（離した後に画面に残さない）
+      // 結線中のガイド（押下ドラッグ中のみ）
       if (!isExport && !isViewMode && mode === 'connect' && selectedStar && isPointerDown) {
         const p1 = toScreen(selectedStar.nx, selectedStar.ny);
         ctx.setLineDash([3, 4]);
@@ -1556,6 +1799,11 @@
       }
       ctx.restore();
 
+      // 範囲選択中のプレビュー対象
+      const previewBoxSet = (!isExport && !isViewMode && mode === 'select' && selectionBox && didMove)
+        ? new Set(getStarsInBox(selectionBox))
+        : null;
+
       // 確定済みの恒星
       for (const s of stars) {
         const p = toScreen(s.nx, s.ny);
@@ -1565,6 +1813,8 @@
             highlight = '#d4b483';
           } else if (draggingStar && draggingStar.id === s.id) {
             highlight = '#d4b483';
+          } else if (mode === 'select' && (selectedStarIds.has(s.id) || (previewBoxSet && previewBoxSet.has(s.id)))) {
+            highlight = '#d4b483';
           } else if (hoveredStar && hoveredStar.id === s.id) {
             highlight = 'rgba(255, 255, 255, 0.45)';
           }
@@ -1572,11 +1822,26 @@
         drawSingleStar(p, s.size, s.color, highlight);
       }
 
+      // 範囲選択ボックスの描画
+      if (!isExport && !isViewMode && mode === 'select' && isPointerDown && selectionBox && didMove) {
+        const x = Math.min(selectionBox.x1, selectionBox.x2);
+        const y = Math.min(selectionBox.y1, selectionBox.y2);
+        const w = Math.abs(selectionBox.x2 - selectionBox.x1);
+        const h = Math.abs(selectionBox.y2 - selectionBox.y1);
+        ctx.save();
+        ctx.fillStyle = 'rgba(212, 180, 131, 0.08)';
+        ctx.strokeStyle = 'rgba(212, 180, 131, 0.72)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+      }
+
       // 配置モード：長押し位置合わせ中の仮星と精密レティクル
       if (!isExport && !isViewMode && mode === 'place' && isPointerDown && placingStar) {
         const p = toScreen(placingStar.nx, placingStar.ny);
         ctx.save();
-        // 指先で隠れても位置が分かるように長めの精密クロスヘアを描画
         const armInner = placingStar.size + 10;
         const armOuter = placingStar.size + 36;
         ctx.strokeStyle = 'rgba(212, 180, 131, 0.55)';
@@ -1591,7 +1856,7 @@
         drawSingleStar(p, placingStar.size, placingStar.color, 'rgba(212, 180, 131, 0.85)');
       }
 
-      // 削除モード：消しゴム範囲の視覚表示（押下中、またはマウスのホバー中のみ）
+      // 削除モード：消しゴム範囲表示
       const showEraserRing = !isExport && !isViewMode && mode === 'erase' &&
         (isPointerDown || (lastPointerType === 'mouse' && isPointerInside));
       if (showEraserRing) {
@@ -1660,7 +1925,7 @@
 
     // --- UI制御 ---
     function syncOptionBarEmphasis() {
-      starOptionsBar.classList.toggle('muted', mode === 'erase' || mode === 'move');
+      starOptionsBar.classList.toggle('muted', mode === 'erase' || mode === 'move' || mode === 'select');
       eraserOptionsBar.classList.toggle('muted', mode !== 'erase');
     }
 
@@ -1668,15 +1933,31 @@
       if (isViewMode) return;
       mode = nextMode;
       clearTransientStates();
+      if (nextMode !== 'select') {
+        selectedStarIds.clear();
+      }
       document.querySelectorAll('[data-mode]').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === nextMode);
       });
       syncOptionBarEmphasis();
+      syncSelectionUI();
       updateCursor(lastPointerType !== 'mouse');
     }
 
     document.querySelectorAll('[data-mode]').forEach(btn => {
       btn.addEventListener('click', () => setMode(btn.dataset.mode));
+    });
+
+    selectAllBtn.addEventListener('click', () => {
+      selectedStarIds = new Set(stars.map(s => s.id));
+      syncSelectionUI();
+    });
+
+    deleteSelectedBtn.addEventListener('click', deleteSelectedStars);
+
+    deselectAllBtn.addEventListener('click', () => {
+      selectedStarIds.clear();
+      syncSelectionUI();
     });
 
     document.querySelectorAll('#magGroup .mag-btn').forEach(btn => {
@@ -1729,7 +2010,9 @@
       stars = [];
       lines = [];
       clearTransientStates();
+      selectedStarIds.clear();
       updateTelemetry();
+      syncSelectionUI();
     });
 
     document.querySelectorAll('#gridToggle .seg-btn').forEach(btn => {
@@ -1793,6 +2076,7 @@
         clearTransientStates();
         isPointerInside = false;
       }
+      syncSelectionUI();
       updateCursor(lastPointerType !== 'mouse');
     }
 
@@ -1836,12 +2120,26 @@
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         undo();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a' && mode === 'select') {
+        e.preventDefault();
+        selectedStarIds = new Set(stars.map(s => s.id));
+        syncSelectionUI();
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && mode === 'select' && selectedStarIds.size > 0) {
+        e.preventDefault();
+        deleteSelectedStars();
       } else if (e.key === '1') setMode('place');
       else if (e.key === '2') setMode('move');
-      else if (e.key === '3') setMode('connect');
-      else if (e.key === '4') setMode('erase');
+      else if (e.key === '3') setMode('select');
+      else if (e.key === '4') setMode('connect');
+      else if (e.key === '5') setMode('erase');
       else if (e.key.toLowerCase() === 'h') toggleViewMode(true);
-      else if (e.key === 'Escape') clearTransientStates();
+      else if (e.key === 'Escape') {
+        clearTransientStates();
+        if (mode === 'select') {
+          selectedStarIds.clear();
+          syncSelectionUI();
+        }
+      }
     });
 
     function initInitialChart() {
@@ -1867,6 +2165,7 @@
 
     if (window.ResizeObserver) {
       new ResizeObserver(syncDockMetric).observe(dock);
+      new ResizeObserver(syncDockMetric).observe(selectionBar);
     }
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(syncDockMetric);
@@ -1880,6 +2179,7 @@
 
     resize();
     syncOptionBarEmphasis();
+    syncSelectionUI();
     pointerPos = { x: width / 2, y: height / 2 };
     initInitialChart();
     loop();
