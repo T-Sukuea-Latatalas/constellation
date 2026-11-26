@@ -16,6 +16,8 @@
       --border-strong: rgba(255, 255, 255, 0.22);
       --brass: #d4b483;
       --brass-dim: rgba(212, 180, 131, 0.16);
+      --danger: #d97c7c;
+      --danger-dim: rgba(217, 124, 124, 0.16);
       --text-primary: #eceff4;
       --text-secondary: #8a93a6;
       --text-muted: #525a6b;
@@ -270,8 +272,8 @@
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      padding: 5px 6px;
+      gap: 4px 6px;
+      padding: 6px 8px;
       width: max-content;
       max-width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
     }
@@ -286,7 +288,7 @@
       width: 1px;
       height: 18px;
       background: var(--border);
-      margin: 0 4px;
+      margin: 0 2px;
     }
 
     .tool-btn {
@@ -294,11 +296,11 @@
       border: 1px solid transparent;
       border-radius: 4px;
       color: var(--text-secondary);
-      padding: 6px 9px;
-      height: 32px;
+      padding: 6px 8px;
+      height: 30px;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       font-family: var(--font-sans);
       font-size: 12px;
       cursor: pointer;
@@ -317,6 +319,12 @@
       border-color: rgba(212, 180, 131, 0.35);
     }
 
+    .tool-btn[data-mode="erase"].active {
+      color: var(--danger);
+      background: var(--danger-dim);
+      border-color: rgba(217, 124, 124, 0.35);
+    }
+
     .tool-btn.export-btn {
       color: var(--text-primary);
       border-color: var(--border-strong);
@@ -333,11 +341,21 @@
       pointer-events: none;
     }
 
+    /* オプション群（等級・色 / 消しゴムサイズ） */
+    .option-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .option-bar.muted {
+      opacity: 0.48;
+    }
+
     .mag-group {
       display: flex;
       align-items: center;
       gap: 2px;
-      padding: 0 2px;
     }
 
     .mag-btn {
@@ -369,7 +387,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      padding: 0 6px;
+      padding: 0 4px;
     }
 
     .spectral-dot {
@@ -386,6 +404,104 @@
       transform: scale(1.22);
       border-color: #ffffff;
       box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22);
+    }
+
+    /* 消しゴムサイズ選択（3段階） */
+    .eraser-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .eraser-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .eraser-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-hover);
+    }
+
+    .eraser-btn.active {
+      color: var(--danger);
+      border-color: rgba(217, 124, 124, 0.4);
+      background: var(--danger-dim);
+    }
+
+    .eraser-circle {
+      border-radius: 50%;
+      border: 1.3px solid currentColor;
+      display: block;
+    }
+
+    /* 交点に星を追加 チェックボックス */
+    .intersect-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 6px;
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .intersect-check:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .intersect-check input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      margin: 0;
+      border: 1px solid var(--border-strong);
+      border-radius: 2px;
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .intersect-check input[type="checkbox"]:checked {
+      background: var(--brass);
+      border-color: var(--brass);
+    }
+
+    .intersect-check input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 3.5px;
+      top: 1px;
+      width: 3.5px;
+      height: 7px;
+      border: solid #0b0e16;
+      border-width: 0 1.6px 1.6px 0;
+      transform: rotate(45deg);
+    }
+
+    .intersect-check:has(input:checked) {
+      color: var(--brass);
+      border-color: rgba(212, 180, 131, 0.4);
+      background: var(--brass-dim);
     }
 
     /* 夜空のタイトル銘板（プレビュー表示） */
@@ -463,12 +579,12 @@
       flex-shrink: 0;
     }
 
-    @media (max-width: 920px) {
+    @media (max-width: 980px) {
       .telemetry { display: none; }
       .dock-sep { display: none; }
       .dock {
-        gap: 3px 6px;
-        padding: 5px 8px;
+        gap: 4px 8px;
+        padding: 6px 8px;
       }
     }
 
@@ -477,7 +593,7 @@
       .inspector:not(.collapsed) {
         top: calc(48px + env(safe-area-inset-top));
         width: calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));
-        max-height: calc(100dvh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        max-height: calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
       }
       .tool-btn .label-text {
         display: none;
@@ -486,7 +602,7 @@
         display: inline;
       }
       .tool-btn {
-        padding: 6px 8px;
+        padding: 5px 7px;
       }
     }
   </style>
@@ -551,16 +667,21 @@
 
   <!-- 下部ツールバー -->
   <nav class="chrome dock" id="dock" aria-label="製図ツール">
+    <!-- 4つの独立モード -->
     <div class="dock-group">
-      <button class="tool-btn active show-label" data-mode="place" type="button" title="星を配置 / ドラッグで移動 (1)">
+      <button class="tool-btn active show-label" data-mode="place" type="button" title="長押しで位置を合わせ、離して星を置く (1)">
         <svg class="icon" viewBox="0 0 16 16"><path d="M8 2v3M8 11v3M2 8h3M11 8h3"/><circle cx="8" cy="8" r="1.4"/></svg>
         <span class="label-text">配置</span>
       </button>
-      <button class="tool-btn show-label" data-mode="connect" type="button" title="星同士を繋ぐ (2)">
+      <button class="tool-btn show-label" data-mode="move" type="button" title="既存の星を掴んで位置を調整する (2)">
+        <svg class="icon" viewBox="0 0 16 16"><path d="M8 2v12M2 8h12M8 2l-2 2M8 2l2 2M8 14l-2-2M8 14l2-2M2 8l2-2M2 8l2 2M14 8l-2-2M14 8l-2 2"/></svg>
+        <span class="label-text">移動</span>
+      </button>
+      <button class="tool-btn show-label" data-mode="connect" type="button" title="星同士を繋ぐ (3)">
         <svg class="icon" viewBox="0 0 16 16"><circle cx="3.5" cy="12" r="1.6"/><circle cx="12.5" cy="4" r="1.6"/><path d="M4.8 10.8L11.2 5.2"/></svg>
         <span class="label-text">結線</span>
       </button>
-      <button class="tool-btn show-label" data-mode="erase" type="button" title="星や線を消す (3)">
+      <button class="tool-btn show-label" data-mode="erase" type="button" title="押している間触れた星や線を消す (4)">
         <svg class="icon" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
         <span class="label-text">削除</span>
       </button>
@@ -568,7 +689,8 @@
 
     <div class="dock-sep"></div>
 
-    <div class="dock-group" title="等級（明るさ）とスペクトル型">
+    <!-- 星の等級とスペクトル -->
+    <div class="dock-group option-bar" id="starOptionsBar" title="等級（明るさ）とスペクトル型">
       <div class="mag-group" id="magGroup">
         <button class="mag-btn" data-size="5.2" type="button" title="1等星">I</button>
         <button class="mag-btn active" data-size="3.6" type="button" title="2等星">II</button>
@@ -582,8 +704,30 @@
       </div>
     </div>
 
+    <!-- 交点に星を追加チェックボックス -->
+    <label class="intersect-check" title="結線が既存の線と交差した位置に星を追加します">
+      <input type="checkbox" id="intersectCheck">
+      <span>交点に星</span>
+    </label>
+
+    <!-- 消しゴムサイズ（3段階） -->
+    <div class="dock-group option-bar muted" id="eraserOptionsBar" title="消しゴムのサイズ（小・中・大）">
+      <div class="eraser-group" id="eraserGroup">
+        <button class="eraser-btn" data-radius="10" type="button" title="消しゴム：小">
+          <span class="eraser-circle" style="width:6px;height:6px;"></span>
+        </button>
+        <button class="eraser-btn active" data-radius="22" type="button" title="消しゴム：中">
+          <span class="eraser-circle" style="width:11px;height:11px;"></span>
+        </button>
+        <button class="eraser-btn" data-radius="38" type="button" title="消しゴム：大">
+          <span class="eraser-circle" style="width:16px;height:16px;"></span>
+        </button>
+      </div>
+    </div>
+
     <div class="dock-sep"></div>
 
+    <!-- 補助アクション -->
     <div class="dock-group">
       <button class="tool-btn" id="scatterBtn" type="button" title="ランダムに星を散らす">
         <svg class="icon" viewBox="0 0 16 16"><circle cx="4" cy="5" r="0.9"/><circle cx="11.5" cy="4" r="0.9"/><circle cx="8" cy="9" r="0.9"/><circle cx="4.5" cy="12" r="0.9"/><circle cx="12" cy="11.5" r="0.9"/></svg>
@@ -601,6 +745,7 @@
 
     <div class="dock-sep"></div>
 
+    <!-- 鑑賞・書き出し -->
     <div class="dock-group">
       <button class="tool-btn" id="viewBtn" type="button" title="鑑賞モード (H)">
         <svg class="icon" viewBox="0 0 16 16"><path d="M2 5.5V3h2.5M14 5.5V3h-2.5M2 10.5V13h2.5M14 10.5V13h-2.5"/></svg>
@@ -635,14 +780,18 @@
     const starCountEl = document.getElementById('starCount');
     const lineCountEl = document.getElementById('lineCount');
     const undoBtn = document.getElementById('undoBtn');
+    const intersectCheck = document.getElementById('intersectCheck');
+    const starOptionsBar = document.getElementById('starOptionsBar');
+    const eraserOptionsBar = document.getElementById('eraserOptionsBar');
 
     let width = window.innerWidth;
     let height = window.innerHeight;
     let dpr = 1;
 
-    let mode = 'place';
+    let mode = 'place'; // 'place' | 'move' | 'connect' | 'erase'
     let currentSize = 3.6;
     let currentColor = '#f2f6ff';
+    let eraserRadius = 22;
     let showGrid = true;
     let lineStyle = 'solid';
 
@@ -650,18 +799,28 @@
     let lines = [];
     let history = [];
     let nextId = 1;
-
     let bgStars = [];
 
-    let hoveredStar = null;
-    let draggingStar = null;
-    let dragSnapshot = null;
-    let selectedStar = null;
-    let downPos = { x: 0, y: 0 };
-    let pointerPos = { x: width / 2, y: height / 2 };
+    // ポインター・ツール状態
+    let activePointerId = null;
+    let lastPointerType = 'mouse';
     let isPointerDown = false;
+    let isPointerInside = false;
+    let downPos = { x: 0, y: 0 };
+    let prevPos = { x: 0, y: 0 };
+    let pointerPos = { x: width / 2, y: height / 2 };
     let didMove = false;
-    let activeTouchId = null;
+
+    // モード別一時オブジェクト（離したら消える）
+    let placingStar = null;      // 配置モードで押下中の仮星
+    let draggingStar = null;     // 移動モードで掴んでいる星
+    let dragSnapshot = null;
+    let selectedStar = null;     // 結線モードの起点
+    let toggledSameStarInDown = false;
+    let hoveredStar = null;      // マウス移動中かつ移動/結線モード時のみ
+    let eraseSnapshot = null;    // 消しゴム1ストローク分のスナップショット
+    let eraseDidDelete = false;
+
     let isEditingText = false;
     let isViewMode = false;
 
@@ -700,7 +859,6 @@
 
     function resize() {
       if (isEditingText) return;
-
       const rect = canvas.getBoundingClientRect();
       width = rect.width || window.innerWidth;
       height = rect.height || window.innerHeight;
@@ -771,12 +929,25 @@
       const prev = history.pop();
       stars = prev.stars;
       lines = prev.lines;
-      selectedStar = null;
-      draggingStar = null;
+      clearTransientStates();
       undoBtn.disabled = history.length === 0;
       updateTelemetry();
     }
 
+    function clearTransientStates() {
+      activePointerId = null;
+      isPointerDown = false;
+      placingStar = null;
+      draggingStar = null;
+      dragSnapshot = null;
+      selectedStar = null;
+      toggledSameStarInDown = false;
+      hoveredStar = null;
+      eraseSnapshot = null;
+      eraseDidDelete = false;
+    }
+
+    // 幾何計算ユーティリティ
     function findStarAt(sx, sy, threshold = 24) {
       let hit = null;
       let minD = threshold;
@@ -799,33 +970,203 @@
       return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
     }
 
-    function findLineAt(sx, sy, threshold = 14) {
-      const starMap = new Map(stars.map(s => [s.id, s]));
-      for (let i = 0; i < lines.length; i++) {
-        const s1 = starMap.get(lines[i].from);
-        const s2 = starMap.get(lines[i].to);
-        if (!s1 || !s2) continue;
-        const p1 = toScreen(s1.nx, s1.ny);
-        const p2 = toScreen(s2.nx, s2.ny);
-        if (distToSegment(sx, sy, p1.x, p1.y, p2.x, p2.y) < threshold) {
-          return i;
-        }
+    function segmentToSegmentDist(a, b, c, d) {
+      const denom = (a.x - b.x) * (c.y - d.y) - (a.y - b.y) * (c.x - d.x);
+      if (Math.abs(denom) > 1e-9) {
+        const t = ((a.x - c.x) * (c.y - d.y) - (a.y - c.y) * (c.x - d.x)) / denom;
+        const u = -((a.x - b.x) * (a.y - c.y) - (a.y - b.y) * (a.x - c.x)) / denom;
+        if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return 0;
       }
-      return -1;
+      return Math.min(
+        distToSegment(a.x, a.y, c.x, c.y, d.x, d.y),
+        distToSegment(b.x, b.y, c.x, c.y, d.x, d.y),
+        distToSegment(c.x, c.y, a.x, a.y, b.x, b.y),
+        distToSegment(d.x, d.y, a.x, a.y, b.x, b.y)
+      );
     }
 
+    function lineExists(idA, idB, list = lines) {
+      return list.some(
+        l => (l.from === idA && l.to === idB) || (l.from === idB && l.to === idA)
+      );
+    }
+
+    function addLineUnique(idA, idB) {
+      if (idA === idB) return;
+      if (!lineExists(idA, idB, lines)) {
+        lines.push({ from: idA, to: idB });
+      }
+    }
+
+    // 結線＋交点に星を追加するロジック
     function connectStars(s1, s2) {
       if (!s1 || !s2 || s1.id === s2.id) return false;
-      const exists = lines.some(
-        l => (l.from === s1.id && l.to === s2.id) || (l.from === s2.id && l.to === s1.id)
-      );
-      if (!exists) {
+      if (lineExists(s1.id, s2.id)) return false;
+
+      if (!intersectCheck.checked) {
         saveHistory();
         lines.push({ from: s1.id, to: s2.id });
         updateTelemetry();
         return true;
       }
-      return false;
+
+      // 既存線との交点を探索
+      const starMap = new Map(stars.map(s => [s.id, s]));
+      const x1 = s1.nx, y1 = s1.ny;
+      const x2 = s2.nx, y2 = s2.ny;
+      const eps = 1e-4;
+      const intersections = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        if (l.from === s1.id || l.from === s2.id || l.to === s1.id || l.to === s2.id) {
+          continue;
+        }
+        const s3 = starMap.get(l.from);
+        const s4 = starMap.get(l.to);
+        if (!s3 || !s4) continue;
+
+        const x3 = s3.nx, y3 = s3.ny;
+        const x4 = s4.nx, y4 = s4.ny;
+
+        const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+        if (Math.abs(denom) < 1e-9) continue;
+
+        const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+        const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+
+        if (t > eps && t < 1 - eps && u > eps && u < 1 - eps) {
+          intersections.push({
+            lineIndex: i,
+            t,
+            nx: x1 + t * (x2 - x1),
+            ny: y1 + t * (y2 - y1)
+          });
+        }
+      }
+
+      if (intersections.length === 0) {
+        saveHistory();
+        lines.push({ from: s1.id, to: s2.id });
+        updateTelemetry();
+        return true;
+      }
+
+      saveHistory();
+
+      // 新規線上の進行順に並べる
+      intersections.sort((a, b) => a.t - b.t);
+
+      const scale = getScale();
+      const mergeThresholdNorm = 8 / Math.max(scale, 1);
+      const linesToRemove = new Set();
+      const splitAdditions = [];
+      const chainStarIds = [s1.id];
+
+      for (const hit of intersections) {
+        // 既存線分の端点以外の星とほぼ重なる場合は再利用する
+        let starAtPoint = null;
+        for (const existing of stars) {
+          if (Math.hypot(existing.nx - hit.nx, existing.ny - hit.ny) < mergeThresholdNorm) {
+            starAtPoint = existing;
+            break;
+          }
+        }
+        if (!starAtPoint) {
+          starAtPoint = {
+            id: nextId++,
+            nx: hit.nx,
+            ny: hit.ny,
+            size: currentSize,
+            color: currentColor
+          };
+          stars.push(starAtPoint);
+        }
+
+        // 交差された既存線を交点星で2本に分割
+        const origLine = lines[hit.lineIndex];
+        linesToRemove.add(hit.lineIndex);
+        if (origLine.from !== starAtPoint.id) {
+          splitAdditions.push({ from: origLine.from, to: starAtPoint.id });
+        }
+        if (starAtPoint.id !== origLine.to) {
+          splitAdditions.push({ from: starAtPoint.id, to: origLine.to });
+        }
+
+        if (chainStarIds[chainStarIds.length - 1] !== starAtPoint.id) {
+          chainStarIds.push(starAtPoint.id);
+        }
+      }
+
+      if (chainStarIds[chainStarIds.length - 1] !== s2.id) {
+        chainStarIds.push(s2.id);
+      }
+
+      // 既存線の分割を反映
+      lines = lines.filter((_, idx) => !linesToRemove.has(idx));
+      for (const seg of splitAdditions) {
+        addLineUnique(seg.from, seg.to);
+      }
+      // 新規線を交点ごとに分割して追加
+      for (let i = 0; i < chainStarIds.length - 1; i++) {
+        addLineUnique(chainStarIds[i], chainStarIds[i + 1]);
+      }
+
+      updateTelemetry();
+      return true;
+    }
+
+    // 消しゴム削除実行（前フレーム〜現フレームの軌跡にあるオブジェクトを削除）
+    function eraseAlongStroke(fromPos, toPos) {
+      const deletedStarIds = new Set();
+
+      // 1. 範囲内の星を検出
+      for (const s of stars) {
+        const p = toScreen(s.nx, s.ny);
+        const hitDist = distToSegment(p.x, p.y, fromPos.x, fromPos.y, toPos.x, toPos.y);
+        if (hitDist <= eraserRadius + s.size * 0.6) {
+          deletedStarIds.add(s.id);
+        }
+      }
+
+      let changed = false;
+      if (deletedStarIds.size > 0) {
+        stars = stars.filter(s => !deletedStarIds.has(s.id));
+        lines = lines.filter(l => !deletedStarIds.has(l.from) && !deletedStarIds.has(l.to));
+        if (selectedStar && deletedStarIds.has(selectedStar.id)) {
+          selectedStar = null;
+        }
+        changed = true;
+      }
+
+      // 2. 範囲内の線を検出
+      const starMap = new Map(stars.map(s => [s.id, s]));
+      const remainingLines = [];
+      for (const l of lines) {
+        const s1 = starMap.get(l.from);
+        const s2 = starMap.get(l.to);
+        if (!s1 || !s2) {
+          changed = true;
+          continue;
+        }
+        const p1 = toScreen(s1.nx, s1.ny);
+        const p2 = toScreen(s2.nx, s2.ny);
+        const d = segmentToSegmentDist(fromPos, toPos, p1, p2);
+        if (d <= eraserRadius) {
+          changed = true;
+        } else {
+          remainingLines.push(l);
+        }
+      }
+
+      if (remainingLines.length !== lines.length) {
+        lines = remainingLines;
+      }
+
+      if (changed) {
+        eraseDidDelete = true;
+        updateTelemetry();
+      }
     }
 
     function clientToCanvas(clientX, clientY) {
@@ -833,32 +1174,69 @@
       return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    let toggledSameStarInDown = false;
+    function updateCursor(isTouch) {
+      if (isViewMode) {
+        canvas.style.cursor = 'default';
+        return;
+      }
+      if (isTouch) {
+        canvas.style.cursor = 'default';
+        return;
+      }
+      if (mode === 'place') {
+        canvas.style.cursor = 'crosshair';
+      } else if (mode === 'move') {
+        canvas.style.cursor = draggingStar ? 'grabbing' : (hoveredStar ? 'grab' : 'default');
+      } else if (mode === 'connect') {
+        canvas.style.cursor = hoveredStar ? 'pointer' : 'crosshair';
+      } else if (mode === 'erase') {
+        canvas.style.cursor = 'none';
+      }
+    }
 
-    function handlePointerDown(pos) {
+    // Pointer Events 統一ハンドラ
+    canvas.addEventListener('pointerdown', e => {
       if (isViewMode) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (activePointerId !== null) return;
 
-      downPos = { x: pos.x, y: pos.y };
-      pointerPos = { x: pos.x, y: pos.y };
+      e.preventDefault();
+      activePointerId = e.pointerId;
+      lastPointerType = e.pointerType || 'mouse';
       isPointerDown = true;
+      isPointerInside = true;
       didMove = false;
-      toggledSameStarInDown = false;
+
+      const pos = clientToCanvas(e.clientX, e.clientY);
+      downPos = { x: pos.x, y: pos.y };
+      prevPos = { x: pos.x, y: pos.y };
+      pointerPos = { x: pos.x, y: pos.y };
       updateTelemetry();
 
-      const hit = findStarAt(pos.x, pos.y);
-
       if (mode === 'place') {
+        // 長押し移動できる仮星を即座に出現させる
+        const norm = toNorm(pos.x, pos.y);
+        placingStar = {
+          nx: norm.nx,
+          ny: norm.ny,
+          size: currentSize,
+          color: currentColor
+        };
+      } else if (mode === 'move') {
+        const hit = findStarAt(pos.x, pos.y, lastPointerType === 'touch' ? 28 : 22);
         if (hit) {
           draggingStar = hit;
           dragSnapshot = cloneState();
         }
       } else if (mode === 'connect') {
+        const hit = findStarAt(pos.x, pos.y, lastPointerType === 'touch' ? 28 : 22);
+        toggledSameStarInDown = false;
         if (hit) {
           if (selectedStar && selectedStar.id === hit.id) {
             toggledSameStarInDown = true;
           } else if (selectedStar && selectedStar.id !== hit.id) {
             connectStars(selectedStar, hit);
-            selectedStar = hit;
+            selectedStar = null;
           } else {
             selectedStar = hit;
           }
@@ -866,145 +1244,144 @@
           selectedStar = null;
         }
       } else if (mode === 'erase') {
-        if (hit) {
-          saveHistory();
-          stars = stars.filter(s => s.id !== hit.id);
-          lines = lines.filter(l => l.from !== hit.id && l.to !== hit.id);
-          if (selectedStar && selectedStar.id === hit.id) selectedStar = null;
-          hoveredStar = null;
-          updateTelemetry();
-        } else {
-          const li = findLineAt(pos.x, pos.y);
-          if (li !== -1) {
-            saveHistory();
-            lines.splice(li, 1);
-            updateTelemetry();
-          }
-        }
+        eraseSnapshot = cloneState();
+        eraseDidDelete = false;
+        eraseAlongStroke(pos, pos);
       }
-    }
 
-    function handlePointerMove(pos, isTouch) {
+      updateCursor(lastPointerType !== 'mouse');
+    });
+
+    window.addEventListener('pointermove', e => {
       if (isViewMode) {
         hoveredStar = null;
         return;
       }
 
-      if (isPointerDown && Math.hypot(pos.x - downPos.x, pos.y - downPos.y) > 6) {
-        didMove = true;
+      // タッチで押下していない時は完全に無視（離した後に判定を残さない）
+      if (e.pointerType !== 'mouse' && (!isPointerDown || e.pointerId !== activePointerId)) {
+        return;
       }
-      pointerPos = { x: pos.x, y: pos.y };
-      updateTelemetry();
-
-      hoveredStar = isTouch ? null : findStarAt(pos.x, pos.y);
-
-      if (mode === 'place' && draggingStar && isPointerDown && didMove) {
-        const norm = toNorm(pos.x, pos.y);
-        draggingStar.nx = norm.nx;
-        draggingStar.ny = norm.ny;
-      }
-
-      if (!isTouch) {
-        if (mode === 'erase') {
-          canvas.style.cursor = (hoveredStar || findLineAt(pos.x, pos.y) !== -1) ? 'pointer' : 'crosshair';
-        } else if (hoveredStar) {
-          canvas.style.cursor = mode === 'place' ? 'grab' : 'pointer';
-        } else {
-          canvas.style.cursor = 'crosshair';
-        }
-      }
-    }
-
-    function handlePointerUp() {
-      if (!isPointerDown) return;
-      isPointerDown = false;
-
-      if (isViewMode) {
-        draggingStar = null;
-        dragSnapshot = null;
-        toggledSameStarInDown = false;
+      // 別の指の移動を無視
+      if (isPointerDown && e.pointerId !== activePointerId) {
         return;
       }
 
-      if (mode === 'place') {
-        if (draggingStar) {
+      const pos = clientToCanvas(e.clientX, e.clientY);
+      const isTouch = e.pointerType !== 'mouse';
+      lastPointerType = e.pointerType || 'mouse';
+
+      if (isPointerDown) {
+        if (Math.hypot(pos.x - downPos.x, pos.y - downPos.y) > 5) {
+          didMove = true;
+        }
+      }
+
+      prevPos = { x: pointerPos.x, y: pointerPos.y };
+      pointerPos = { x: pos.x, y: pos.y };
+      updateTelemetry();
+
+      // ホバー判定はマウスの非押下時（移動・結線モード）のみ
+      if (!isTouch && !isPointerDown && (mode === 'move' || mode === 'connect')) {
+        hoveredStar = findStarAt(pos.x, pos.y, 22);
+      } else if (!isTouch && isPointerDown && mode === 'connect') {
+        hoveredStar = findStarAt(pos.x, pos.y, 26);
+      } else {
+        hoveredStar = null;
+      }
+
+      if (isPointerDown) {
+        if (mode === 'place' && placingStar) {
+          const norm = toNorm(pos.x, pos.y);
+          placingStar.nx = norm.nx;
+          placingStar.ny = norm.ny;
+        } else if (mode === 'move' && draggingStar) {
+          const norm = toNorm(pos.x, pos.y);
+          draggingStar.nx = norm.nx;
+          draggingStar.ny = norm.ny;
+        } else if (mode === 'erase') {
+          eraseAlongStroke(prevPos, pos);
+        }
+      }
+
+      updateCursor(isTouch);
+    });
+
+    function finishPointer(e, isCancel) {
+      if (!isPointerDown || e.pointerId !== activePointerId) return;
+
+      const isTouch = e.pointerType !== 'mouse';
+      const pos = clientToCanvas(e.clientX, e.clientY);
+      pointerPos = { x: pos.x, y: pos.y };
+
+      isPointerDown = false;
+      activePointerId = null;
+
+      if (!isViewMode && !isCancel) {
+        if (mode === 'place' && placingStar) {
+          // 離した場所に星を確定配置
+          saveHistory();
+          stars.push({
+            id: nextId++,
+            nx: placingStar.nx,
+            ny: placingStar.ny,
+            size: placingStar.size,
+            color: placingStar.color
+          });
+          updateTelemetry();
+        } else if (mode === 'move' && draggingStar) {
           if (didMove && dragSnapshot) {
             pushSnapshot(dragSnapshot);
           }
-          draggingStar = null;
-          dragSnapshot = null;
-        } else if (!didMove) {
-          saveHistory();
-          const norm = toNorm(pointerPos.x, pointerPos.y);
-          stars.push({
-            id: nextId++,
-            nx: norm.nx,
-            ny: norm.ny,
-            size: currentSize,
-            color: currentColor
-          });
-          updateTelemetry();
-        }
-      } else if (mode === 'connect') {
-        if (didMove && selectedStar) {
-          const target = findStarAt(pointerPos.x, pointerPos.y, 28);
-          if (target && target.id !== selectedStar.id) {
-            connectStars(selectedStar, target);
+        } else if (mode === 'connect') {
+          if (didMove && selectedStar) {
+            const target = findStarAt(pos.x, pos.y, isTouch ? 30 : 26);
+            if (target && target.id !== selectedStar.id) {
+              connectStars(selectedStar, target);
+            }
+            // ドラッグ終了後は選択状態を残さない
+            selectedStar = null;
+          } else if (!didMove && toggledSameStarInDown) {
             selectedStar = null;
           }
-        } else if (!didMove && toggledSameStarInDown) {
-          selectedStar = null;
+        } else if (mode === 'erase') {
+          if (eraseDidDelete && eraseSnapshot) {
+            pushSnapshot(eraseSnapshot);
+          }
         }
       }
+
+      // 離した後は押下中の一時状態・タッチホバー判定をすべてクリア
+      placingStar = null;
+      draggingStar = null;
+      dragSnapshot = null;
       toggledSameStarInDown = false;
+      eraseSnapshot = null;
+      eraseDidDelete = false;
+
+      if (isTouch) {
+        hoveredStar = null;
+        isPointerInside = false;
+      }
+
+      updateCursor(isTouch);
     }
 
-    canvas.addEventListener('mousedown', e => {
-      if (isViewMode || e.button !== 0) return;
-      handlePointerDown(clientToCanvas(e.clientX, e.clientY));
+    window.addEventListener('pointerup', e => finishPointer(e, false));
+    window.addEventListener('pointercancel', e => finishPointer(e, true));
+
+    canvas.addEventListener('pointerenter', e => {
+      if (e.pointerType === 'mouse') isPointerInside = true;
     });
-    window.addEventListener('mousemove', e => {
-      if (isViewMode) return;
-      handlePointerMove(clientToCanvas(e.clientX, e.clientY), false);
-    });
-    window.addEventListener('mouseup', () => {
-      handlePointerUp();
+    canvas.addEventListener('pointerleave', e => {
+      if (e.pointerType === 'mouse') {
+        isPointerInside = false;
+        hoveredStar = null;
+      }
     });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    canvas.addEventListener('touchstart', e => {
-      if (isViewMode) return;
-      e.preventDefault();
-      if (activeTouchId !== null) return;
-      const t = e.changedTouches[0];
-      activeTouchId = t.identifier;
-      handlePointerDown(clientToCanvas(t.clientX, t.clientY));
-    }, { passive: false });
-
-    window.addEventListener('touchmove', e => {
-      if (isViewMode || activeTouchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === activeTouchId) {
-          e.preventDefault();
-          handlePointerMove(clientToCanvas(t.clientX, t.clientY), true);
-          break;
-        }
-      }
-    }, { passive: false });
-
-    function onTouchEndOrCancel(e) {
-      if (activeTouchId === null) return;
-      for (const t of e.changedTouches) {
-        if (t.identifier === activeTouchId) {
-          activeTouchId = null;
-          handlePointerUp();
-          break;
-        }
-      }
-    }
-    window.addEventListener('touchend', onTouchEndOrCancel);
-    window.addEventListener('touchcancel', onTouchEndOrCancel);
-
+    // 座標グリッドと書き出し用フレーム
     function drawCelestialGrid(isExport = false) {
       if (!showGrid && !isExport) return;
       const cx = width / 2;
@@ -1069,6 +1446,45 @@
       return result.filter((_, idx, arr) => idx < 4 && (arr[idx] !== '' || arr.length === 1));
     }
 
+    function drawSingleStar(p, size, color, highlightColor = null) {
+      ctx.save();
+      const haloR = size * 4.2;
+      const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloR);
+      halo.addColorStop(0, hexToRgba(color, 1));
+      halo.addColorStop(0.18, hexToRgba(color, 0.4));
+      halo.addColorStop(0.5, hexToRgba(color, 0.08));
+      halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (size >= 4.5) {
+        const sp = size * 2.5;
+        ctx.strokeStyle = hexToRgba(color, 0.34);
+        ctx.lineWidth = 0.75;
+        ctx.beginPath();
+        ctx.moveTo(p.x - sp, p.y); ctx.lineTo(p.x + sp, p.y);
+        ctx.moveTo(p.x, p.y - sp); ctx.lineTo(p.x, p.y + sp);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, size * 0.52, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (highlightColor) {
+        const r = size + 8;
+        ctx.strokeStyle = highlightColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     function render(time, isExport = false) {
       ctx.clearRect(0, 0, width, height);
 
@@ -1096,6 +1512,7 @@
 
       const starMap = new Map(stars.map(s => [s.id, s]));
 
+      // 星座線
       ctx.save();
       ctx.lineWidth = 1.15;
       ctx.strokeStyle = 'rgba(220, 228, 242, 0.58)';
@@ -1127,7 +1544,8 @@
         }
       }
 
-      if (!isExport && !isViewMode && mode === 'connect' && selectedStar) {
+      // 結線ガイド線は「押下ドラッグ中のみ」描画（離した後に画面に残さない）
+      if (!isExport && !isViewMode && mode === 'connect' && selectedStar && isPointerDown) {
         const p1 = toScreen(selectedStar.nx, selectedStar.ny);
         ctx.setLineDash([3, 4]);
         ctx.strokeStyle = 'rgba(212, 180, 131, 0.72)';
@@ -1138,49 +1556,58 @@
       }
       ctx.restore();
 
+      // 確定済みの恒星
       for (const s of stars) {
         const p = toScreen(s.nx, s.ny);
-        const isHovered = !isExport && !isViewMode && hoveredStar && hoveredStar.id === s.id;
-        const isSelected = !isExport && !isViewMode && selectedStar && selectedStar.id === s.id;
+        let highlight = null;
+        if (!isExport && !isViewMode) {
+          if (selectedStar && selectedStar.id === s.id) {
+            highlight = '#d4b483';
+          } else if (draggingStar && draggingStar.id === s.id) {
+            highlight = '#d4b483';
+          } else if (hoveredStar && hoveredStar.id === s.id) {
+            highlight = 'rgba(255, 255, 255, 0.45)';
+          }
+        }
+        drawSingleStar(p, s.size, s.color, highlight);
+      }
 
+      // 配置モード：長押し位置合わせ中の仮星と精密レティクル
+      if (!isExport && !isViewMode && mode === 'place' && isPointerDown && placingStar) {
+        const p = toScreen(placingStar.nx, placingStar.ny);
         ctx.save();
-        const haloR = s.size * 4.2;
-        const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloR);
-        halo.addColorStop(0, hexToRgba(s.color, 1));
-        halo.addColorStop(0.18, hexToRgba(s.color, 0.4));
-        halo.addColorStop(0.5, hexToRgba(s.color, 0.08));
-        halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = halo;
+        // 指先で隠れても位置が分かるように長めの精密クロスヘアを描画
+        const armInner = placingStar.size + 10;
+        const armOuter = placingStar.size + 36;
+        ctx.strokeStyle = 'rgba(212, 180, 131, 0.55)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(p.x - armOuter, p.y); ctx.lineTo(p.x - armInner, p.y);
+        ctx.moveTo(p.x + armInner, p.y); ctx.lineTo(p.x + armOuter, p.y);
+        ctx.moveTo(p.x, p.y - armOuter); ctx.lineTo(p.x, p.y - armInner);
+        ctx.moveTo(p.x, p.y + armInner); ctx.lineTo(p.x, p.y + armOuter);
+        ctx.stroke();
+        ctx.restore();
+        drawSingleStar(p, placingStar.size, placingStar.color, 'rgba(212, 180, 131, 0.85)');
+      }
 
-        if (s.size >= 4.5) {
-          const sp = s.size * 2.5;
-          ctx.strokeStyle = hexToRgba(s.color, 0.34);
-          ctx.lineWidth = 0.75;
-          ctx.beginPath();
-          ctx.moveTo(p.x - sp, p.y); ctx.lineTo(p.x + sp, p.y);
-          ctx.moveTo(p.x, p.y - sp); ctx.lineTo(p.x, p.y + sp);
-          ctx.stroke();
-        }
-
-        ctx.fillStyle = '#ffffff';
+      // 削除モード：消しゴム範囲の視覚表示（押下中、またはマウスのホバー中のみ）
+      const showEraserRing = !isExport && !isViewMode && mode === 'erase' &&
+        (isPointerDown || (lastPointerType === 'mouse' && isPointerInside));
+      if (showEraserRing) {
+        ctx.save();
+        ctx.strokeStyle = isPointerDown ? 'rgba(217, 124, 124, 0.85)' : 'rgba(217, 124, 124, 0.45)';
+        ctx.fillStyle = isPointerDown ? 'rgba(217, 124, 124, 0.09)' : 'rgba(217, 124, 124, 0.03)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, s.size * 0.52, 0, Math.PI * 2);
+        ctx.arc(pointerPos.x, pointerPos.y, eraserRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        if (isSelected || isHovered) {
-          const r = s.size + 8;
-          ctx.strokeStyle = isSelected ? '#d4b483' : 'rgba(255, 255, 255, 0.45)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          ctx.stroke();
-        }
+        ctx.stroke();
         ctx.restore();
       }
 
+      // PNG書き出し時の銘板
       if (isExport) {
         const m = Math.max(16, Math.min(28, width * 0.03));
         const title = nameInput.value.trim();
@@ -1232,14 +1659,20 @@
     }
 
     // --- UI制御 ---
+    function syncOptionBarEmphasis() {
+      starOptionsBar.classList.toggle('muted', mode === 'erase' || mode === 'move');
+      eraserOptionsBar.classList.toggle('muted', mode !== 'erase');
+    }
+
     function setMode(nextMode) {
       if (isViewMode) return;
       mode = nextMode;
-      selectedStar = null;
-      draggingStar = null;
+      clearTransientStates();
       document.querySelectorAll('[data-mode]').forEach(b => {
         b.classList.toggle('active', b.dataset.mode === nextMode);
       });
+      syncOptionBarEmphasis();
+      updateCursor(lastPointerType !== 'mouse');
     }
 
     document.querySelectorAll('[data-mode]').forEach(btn => {
@@ -1259,6 +1692,14 @@
         document.querySelectorAll('#spectralGroup .spectral-dot').forEach(d => d.classList.remove('active'));
         dot.classList.add('active');
         currentColor = dot.dataset.color;
+      });
+    });
+
+    document.querySelectorAll('#eraserGroup .eraser-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#eraserGroup .eraser-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        eraserRadius = parseFloat(btn.dataset.radius);
       });
     });
 
@@ -1287,8 +1728,7 @@
       saveHistory();
       stars = [];
       lines = [];
-      selectedStar = null;
-      draggingStar = null;
+      clearTransientStates();
       updateTelemetry();
     });
 
@@ -1350,13 +1790,10 @@
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
         }
-        selectedStar = null;
-        draggingStar = null;
-        dragSnapshot = null;
-        hoveredStar = null;
-        isPointerDown = false;
-        activeTouchId = null;
+        clearTransientStates();
+        isPointerInside = false;
       }
+      updateCursor(lastPointerType !== 'mouse');
     }
 
     document.getElementById('viewBtn').addEventListener('click', () => toggleViewMode(true));
@@ -1400,10 +1837,11 @@
         e.preventDefault();
         undo();
       } else if (e.key === '1') setMode('place');
-      else if (e.key === '2') setMode('connect');
-      else if (e.key === '3') setMode('erase');
+      else if (e.key === '2') setMode('move');
+      else if (e.key === '3') setMode('connect');
+      else if (e.key === '4') setMode('erase');
       else if (e.key.toLowerCase() === 'h') toggleViewMode(true);
-      else if (e.key === 'Escape') selectedStar = null;
+      else if (e.key === 'Escape') clearTransientStates();
     });
 
     function initInitialChart() {
@@ -1441,6 +1879,7 @@
     }
 
     resize();
+    syncOptionBarEmphasis();
     pointerPos = { x: width / 2, y: height / 2 };
     initInitialChart();
     loop();
