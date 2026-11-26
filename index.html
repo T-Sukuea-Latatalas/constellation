@@ -2,32 +2,37 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>星空のアトリエ — 自分だけの星座を作るサイト</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --glass-bg: rgba(12, 18, 38, 0.72);
-      --glass-border: rgba(165, 195, 255, 0.22);
+      --glass-bg: rgba(12, 18, 38, 0.76);
+      --glass-border: rgba(165, 195, 255, 0.24);
       --accent: #ffd97d;
       --accent-glow: rgba(255, 217, 125, 0.45);
       --text-main: #eef4ff;
       --text-sub: #9cb0d9;
+      --toolbar-bottom: 90px;
     }
 
     * {
       box-sizing: border-box;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
+      position: fixed;
+      inset: 0;
       width: 100%;
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
       background-color: #050814;
       color: var(--text-main);
@@ -35,6 +40,8 @@
     }
 
     canvas {
+      position: fixed;
+      inset: 0;
       display: block;
       width: 100%;
       height: 100%;
@@ -50,46 +57,54 @@
       border: 1px solid var(--glass-border);
       border-radius: 16px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     /* ヘッダー（左上） */
     .header-bar {
       position: fixed;
-      top: 16px;
-      left: 16px;
-      padding: 10px 18px;
+      top: calc(12px + env(safe-area-inset-top));
+      left: calc(12px + env(safe-area-inset-left));
+      padding: 8px 14px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       z-index: 10;
+      max-width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
     }
 
     .header-bar h1 {
       margin: 0;
       font-family: 'Shippori Mincho', serif;
-      font-size: 1.1rem;
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
       letter-spacing: 0.08em;
       color: var(--accent);
       text-shadow: 0 0 12px var(--accent-glow);
+      white-space: nowrap;
     }
 
     .header-hint {
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: var(--text-sub);
     }
 
     /* 星座情報パネル（右上） */
     .info-panel {
       position: fixed;
-      top: 16px;
-      right: 16px;
-      width: 290px;
-      padding: 16px;
-      z-index: 10;
+      top: calc(12px + env(safe-area-inset-top));
+      right: calc(12px + env(safe-area-inset-right));
+      width: 280px;
+      max-width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      padding: 12px 14px;
+      z-index: 12;
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .info-panel.collapsed {
+      width: auto;
+      padding: 8px 12px;
     }
 
     .info-panel.collapsed .info-body {
@@ -100,45 +115,48 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
     .info-title-label {
       font-family: 'Shippori Mincho', serif;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: #fff;
+      white-space: nowrap;
     }
 
     .icon-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       color: var(--text-main);
       border-radius: 8px;
-      padding: 4px 10px;
-      font-size: 0.78rem;
+      padding: 4px 9px;
+      font-size: 0.76rem;
       cursor: pointer;
-      transition: all 0.2s;
+      white-space: nowrap;
+      transition: background 0.2s;
     }
 
     .icon-btn:hover {
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.2);
     }
 
     .info-body {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     input[type="text"], textarea {
       width: 100%;
-      background: rgba(5, 10, 24, 0.6);
+      background: rgba(5, 10, 24, 0.65);
       border: 1px solid rgba(165, 195, 255, 0.25);
       border-radius: 8px;
       padding: 8px 10px;
       color: #fff;
       font-family: 'Shippori Mincho', serif;
-      font-size: 0.9rem;
+      font-size: 16px; /* iOSの自動ズーム防止のため16px以上 */
       outline: none;
       user-select: text;
       -webkit-user-select: text;
@@ -151,33 +169,39 @@
 
     textarea {
       resize: vertical;
-      min-height: 76px;
+      min-height: 68px;
+      max-height: 150px;
       font-family: 'Noto Sans JP', sans-serif;
-      font-size: 0.82rem;
+      font-size: 14px;
       line-height: 1.5;
     }
 
     /* 下部ツールバー */
     .toolbar {
       position: fixed;
-      bottom: 20px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
       left: 50%;
       transform: translateX(-50%);
-      padding: 10px 14px;
+      padding: 8px 12px;
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       align-items: center;
-      gap: 8px;
+      gap: 6px 8px;
       z-index: 10;
-      max-width: calc(100vw - 24px);
+      width: max-content;
+      max-width: calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      max-height: 42dvh;
+      overflow-y: auto;
     }
 
     .tool-group {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding-right: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 5px;
+      padding-right: 8px;
       border-right: 1px solid rgba(255, 255, 255, 0.14);
     }
 
@@ -187,26 +211,26 @@
     }
 
     .tool-btn {
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.07);
       border: 1px solid transparent;
       color: var(--text-main);
-      padding: 8px 12px;
+      padding: 7px 10px;
       border-radius: 10px;
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       transition: all 0.2s;
       white-space: nowrap;
     }
 
     .tool-btn:hover {
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.16);
     }
 
     .tool-btn.active {
-      background: rgba(255, 217, 125, 0.18);
+      background: rgba(255, 217, 125, 0.2);
       border-color: var(--accent);
       color: var(--accent);
       box-shadow: 0 0 12px rgba(255, 217, 125, 0.2);
@@ -230,6 +254,7 @@
       border: 2px solid transparent;
       cursor: pointer;
       transition: transform 0.15s;
+      flex-shrink: 0;
     }
 
     .color-dot:hover {
@@ -243,7 +268,7 @@
     }
 
     select {
-      background: rgba(5, 10, 24, 0.7);
+      background: rgba(5, 10, 24, 0.75);
       color: var(--text-main);
       border: 1px solid rgba(165, 195, 255, 0.25);
       border-radius: 8px;
@@ -262,8 +287,8 @@
 
     .exit-view-btn {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      right: calc(16px + env(safe-area-inset-right));
       z-index: 20;
       opacity: 0;
       pointer-events: none;
@@ -271,35 +296,31 @@
     }
 
     body.view-mode .exit-view-btn {
-      opacity: 0.85;
+      opacity: 0.9;
       pointer-events: auto;
     }
 
-    body.view-mode .exit-view-btn:hover {
-      opacity: 1;
-    }
-
-    /* 画面に表示する星座タイトル（鑑賞・常時プレビュー用） */
+    /* 画面に表示する星座タイトル（常にツールバーの少し上に配置） */
     .sky-caption {
       position: fixed;
-      bottom: 96px;
+      bottom: var(--toolbar-bottom);
       left: 50%;
       transform: translateX(-50%);
       text-align: center;
       pointer-events: none;
       z-index: 5;
-      max-width: 80vw;
-      transition: bottom 0.35s ease;
+      width: min(86vw, 680px);
+      transition: bottom 0.3s ease;
     }
 
     body.view-mode .sky-caption {
-      bottom: 42px;
+      bottom: calc(32px + env(safe-area-inset-bottom));
     }
 
     .sky-caption h2 {
-      margin: 0 0 6px 0;
+      margin: 0 0 4px 0;
       font-family: 'Shippori Mincho', serif;
-      font-size: clamp(1.4rem, 3vw, 2.2rem);
+      font-size: clamp(1.2rem, 2.8vw, 2rem);
       color: #fff;
       letter-spacing: 0.14em;
       text-shadow: 0 0 18px rgba(170, 210, 255, 0.75);
@@ -307,18 +328,34 @@
 
     .sky-caption p {
       margin: 0;
-      font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+      font-size: clamp(0.75rem, 1.5vw, 0.92rem);
       color: rgba(220, 234, 255, 0.82);
-      line-height: 1.6;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      line-height: 1.5;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
     }
 
-    @media (max-width: 768px) {
+    /* iPad縦・スマホなどのレスポンシブ調整 */
+    @media (max-width: 1024px) {
       .header-hint { display: none; }
-      .info-panel { width: calc(100vw - 32px); top: 68px; right: 16px; }
-      .toolbar { bottom: 12px; padding: 8px 10px; gap: 6px; }
-      .tool-btn { padding: 6px 9px; font-size: 0.78rem; }
-      .sky-caption { bottom: 135px; }
+    }
+
+    @media (max-width: 680px) {
+      .info-panel:not(.collapsed) {
+        top: calc(58px + env(safe-area-inset-top));
+        width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
+      }
+      .toolbar {
+        padding: 7px 8px;
+        gap: 5px;
+      }
+      .tool-group {
+        padding-right: 0;
+        border-right: none;
+      }
+      .tool-btn {
+        padding: 6px 8px;
+        font-size: 0.76rem;
+      }
     }
   </style>
 </head>
@@ -354,11 +391,11 @@
   </div>
 
   <!-- 下部ツールバー -->
-  <div class="panel toolbar">
+  <div class="panel toolbar" id="toolbar">
     <div class="tool-group">
-      <button class="tool-btn active" data-mode="place" title="クリックで星を配置 / ドラッグで移動">✨ 星を置く</button>
-      <button class="tool-btn" data-mode="connect" title="星から星へドラッグ、または順にクリックして線を繋ぐ">📏 線を繋ぐ</button>
-      <button class="tool-btn" data-mode="erase" title="星や線をクリックして消す">🧹 消す</button>
+      <button class="tool-btn active" data-mode="place" title="タップで星を配置 / ドラッグで移動">✨ 星を置く</button>
+      <button class="tool-btn" data-mode="connect" title="星から星へドラッグ、または順にタップして線を繋ぐ">📏 線を繋ぐ</button>
+      <button class="tool-btn" data-mode="erase" title="星や線をタップして消す">🧹 消す</button>
     </div>
 
     <div class="tool-group" id="starOptions">
@@ -400,6 +437,9 @@
     const storyInput = document.getElementById('constellationStory');
     const captionTitle = document.getElementById('captionTitle');
     const captionStory = document.getElementById('captionStory');
+    const toolbar = document.getElementById('toolbar');
+    const infoPanel = document.getElementById('infoPanel');
+    const toggleInfoBtn = document.getElementById('toggleInfoBtn');
 
     // 状態管理
     let width = window.innerWidth;
@@ -410,25 +450,22 @@
     let currentStarSize = 4;
     let currentStarColor = '#fff8e7';
 
-    // 星座データ（座標は画面中央を(0,0)とし、短辺で正規化した値で保持→リサイズしても形が崩れない）
     let stars = []; // { id, nx, ny, size, color }
     let lines = []; // { from, to }
     let history = [];
     let nextStarId = 1;
 
-    // 背景の星と流れ星
     let bgStars = [];
     let shootingStars = [];
 
-    // インタラクション用
     let hoveredStar = null;
     let draggingStar = null;
-    let selectedStar = null; // 線を繋ぐ起点
+    let selectedStar = null;
     let pointerPos = { x: 0, y: 0 };
     let isPointerDown = false;
     let didMove = false;
 
-    // 座標変換（正規化座標 <-> 画面ピクセル座標）
+    // 座標変換（画面中央を基準に短辺で正規化）
     function getScale() {
       return Math.min(width, height);
     }
@@ -449,15 +486,24 @@
       };
     }
 
-    // Canvasリサイズ
+    // ツールバーの高さに合わせてキャプション位置を自動調整
+    function updateLayoutMetrics() {
+      const tbRect = toolbar.getBoundingClientRect();
+      const offsetFromBottom = Math.max(0, height - tbRect.top) + 14;
+      document.documentElement.style.setProperty('--toolbar-bottom', `${offsetFromBottom}px`);
+    }
+
+    // Canvasリサイズ（実際に表示されている領域の実寸を取得）
     function resize() {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      dpr = window.devicePixelRatio || 1;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
+      const rect = canvas.getBoundingClientRect();
+      width = rect.width || window.innerWidth;
+      height = rect.height || window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       initBgStars();
+      requestAnimationFrame(updateLayoutMetrics);
     }
 
     // 背景の瞬く星を生成
@@ -477,7 +523,6 @@
       }
     }
 
-    // Undo用に状態を保存
     function saveHistory() {
       history.push({
         stars: JSON.parse(JSON.stringify(stars)),
@@ -494,8 +539,7 @@
       selectedStar = null;
     }
 
-    // 指定座標の近くにある星を探す
-    function findStarAt(sx, sy, threshold = 20) {
+    function findStarAt(sx, sy, threshold = 24) {
       let closest = null;
       let minDist = threshold;
       for (const s of stars) {
@@ -509,7 +553,6 @@
       return closest;
     }
 
-    // 点と線分の距離（線の消去判定用）
     function distToSegment(px, py, x1, y1, x2, y2) {
       const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
       if (l2 === 0) return Math.hypot(px - x1, py - y1);
@@ -518,7 +561,7 @@
       return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
     }
 
-    function findLineAt(sx, sy, threshold = 12) {
+    function findLineAt(sx, sy, threshold = 14) {
       for (let i = 0; i < lines.length; i++) {
         const s1 = stars.find(s => s.id === lines[i].from);
         const s2 = stars.find(s => s.id === lines[i].to);
@@ -532,7 +575,6 @@
       return -1;
     }
 
-    // 線を繋ぐ処理
     function connectStars(s1, s2) {
       if (!s1 || !s2 || s1.id === s2.id) return;
       const exists = lines.some(
@@ -544,15 +586,12 @@
       }
     }
 
-    // ポインター位置取得（マウス・タッチ両対応）
     function getPointerPos(e) {
       const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return { x: clientX - rect.left, y: clientY - rect.top };
+      const src = e.touches ? (e.touches[0] || e.changedTouches[0]) : e;
+      return { x: src.clientX - rect.left, y: src.clientY - rect.top };
     }
 
-    // ポインターイベント
     function onPointerDown(e) {
       if (e.button && e.button !== 0) return;
       const pos = getPointerPos(e);
@@ -571,7 +610,7 @@
         if (hitStar) {
           if (selectedStar && selectedStar.id !== hitStar.id) {
             connectStars(selectedStar, hitStar);
-            selectedStar = hitStar; // 連続で繋げるように終点を次の起点にする
+            selectedStar = hitStar;
           } else {
             selectedStar = hitStar;
           }
@@ -608,7 +647,6 @@
         draggingStar.ny = norm.ny;
       }
 
-      // カーソル変更
       if (mode === 'erase') {
         canvas.style.cursor = (hoveredStar || findLineAt(pos.x, pos.y) !== -1) ? 'pointer' : 'not-allowed';
       } else if (hoveredStar) {
@@ -624,7 +662,6 @@
 
       if (mode === 'place') {
         if (!draggingStar && !didMove) {
-          // 空いている場所をクリックしたら新しい星を追加
           saveHistory();
           const norm = toNorm(pointerPos.x, pointerPos.y);
           stars.push({
@@ -635,14 +672,12 @@
             color: currentStarColor
           });
         } else if (draggingStar && !didMove) {
-          // 動かさずに離したらUndo履歴を無駄に増やさない
           history.pop();
         }
         draggingStar = null;
       } else if (mode === 'connect') {
         if (didMove && selectedStar) {
-          // ドラッグして別の星の上で離した場合も繋ぐ
-          const target = findStarAt(pointerPos.x, pointerPos.y, 26);
+          const target = findStarAt(pointerPos.x, pointerPos.y, 30);
           if (target && target.id !== selectedStar.id) {
             connectStars(selectedStar, target);
             selectedStar = null;
@@ -659,7 +694,6 @@
     window.addEventListener('touchmove', e => { if (isPointerDown) onPointerMove(e); }, { passive: false });
     window.addEventListener('touchend', onPointerUp);
 
-    // 流れ星をたまに生成
     function spawnShootingStar() {
       if (Math.random() < 0.008 && shootingStars.length < 2) {
         const startX = Math.random() * width * 0.8 + width * 0.1;
@@ -677,9 +711,7 @@
       }
     }
 
-    // 描画関数
     function drawSky(time, includeCaption = false) {
-      // 夜空グラデーション
       const grad = ctx.createRadialGradient(
         width * 0.5, height * 0.35, 10,
         width * 0.5, height * 0.5, Math.max(width, height) * 0.85
@@ -690,7 +722,7 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, width, height);
 
-      // うっすらとした天の川風の帯
+      // 天の川風の淡い帯
       ctx.save();
       ctx.translate(width / 2, height / 2);
       ctx.rotate(-0.38);
@@ -747,7 +779,6 @@
         const p1 = toScreen(s1.nx, s1.ny);
         const p2 = toScreen(s2.nx, s2.ny);
 
-        // 外側の淡い光
         ctx.strokeStyle = 'rgba(130, 190, 255, 0.25)';
         ctx.lineWidth = 5;
         ctx.beginPath();
@@ -755,7 +786,6 @@
         ctx.lineTo(p2.x, p2.y);
         ctx.stroke();
 
-        // 中心のライン
         ctx.strokeStyle = 'rgba(215, 235, 255, 0.85)';
         ctx.lineWidth = 1.6;
         ctx.beginPath();
@@ -785,7 +815,6 @@
         const isSelected = !includeCaption && selectedStar && selectedStar.id === s.id;
 
         ctx.save();
-        // グロー効果
         const glowRadius = s.size * (isHovered || isSelected ? 5.5 : 4);
         const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowRadius);
         glow.addColorStop(0, s.color);
@@ -796,7 +825,6 @@
         ctx.arc(p.x, p.y, glowRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // 十字のきらめき（1等星・2等星）
         if (s.size >= 3.5) {
           const flare = s.size * 2.6 + Math.sin(time * 0.05 + s.id) * 1.5;
           ctx.strokeStyle = s.color + 'aa';
@@ -809,13 +837,11 @@
           ctx.stroke();
         }
 
-        // 星の核
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(p.x, p.y, s.size * 0.65, 0, Math.PI * 2);
         ctx.fill();
 
-        // 選択中・ホバーリング
         if (isSelected || isHovered) {
           ctx.strokeStyle = isSelected ? '#ffd97d' : 'rgba(255,255,255,0.5)';
           ctx.lineWidth = 1.5;
@@ -826,7 +852,7 @@
         ctx.restore();
       }
 
-      // PNG保存用：星座タイトルと説明をキャンバスに直接描画
+      // PNG保存用タイトル描画
       if (includeCaption) {
         const title = nameInput.value.trim();
         const story = storyInput.value.trim();
@@ -834,25 +860,24 @@
           ctx.save();
           ctx.textAlign = 'center';
           if (title) {
-            ctx.font = '700 32px "Shippori Mincho", serif';
+            ctx.font = `700 ${Math.max(22, Math.min(32, width * 0.04))}px "Shippori Mincho", serif`;
             ctx.shadowColor = 'rgba(170, 210, 255, 0.8)';
             ctx.shadowBlur = 16;
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(title, width / 2, height - (story ? 86 : 48));
+            ctx.fillText(title, width / 2, height - (story ? 82 : 44));
           }
           if (story) {
-            ctx.font = '400 15px "Noto Sans JP", sans-serif';
+            ctx.font = `400 ${Math.max(12, Math.min(15, width * 0.025))}px "Noto Sans JP", sans-serif`;
             ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
             ctx.shadowBlur = 6;
             ctx.fillStyle = 'rgba(225, 238, 255, 0.88)';
-            ctx.fillText(story.slice(0, 60) + (story.length > 60 ? '...' : ''), width / 2, height - 46);
+            ctx.fillText(story.slice(0, 56) + (story.length > 56 ? '...' : ''), width / 2, height - 42);
           }
           ctx.restore();
         }
       }
     }
 
-    // アニメーションループ
     let frame = 0;
     function animate() {
       frame++;
@@ -860,7 +885,7 @@
       requestAnimationFrame(animate);
     }
 
-    // --- UIイベント設定 ---
+    // --- UIイベント ---
     const hints = {
       place: '夜空をクリックして星を置こう（星をドラッグで移動）',
       connect: '星と星をクリック、またはドラッグで光の線を繋ごう',
@@ -889,7 +914,6 @@
       });
     });
 
-    // ランダムに星を撒く
     document.getElementById('scatterBtn').addEventListener('click', () => {
       saveHistory();
       const colors = ['#fff8e7', '#9fd3ff', '#ffd27d', '#ff9b85'];
@@ -897,13 +921,12 @@
       for (let i = 0; i < 12; i++) {
         stars.push({
           id: nextStarId++,
-          nx: (Math.random() - 0.5) * 0.72,
-          ny: (Math.random() - 0.5) * 0.62,
+          nx: (Math.random() - 0.5) * 0.65,
+          ny: (Math.random() - 0.5) * 0.52,
           size: sizes[Math.floor(Math.random() * sizes.length)],
           color: colors[Math.floor(Math.random() * colors.length)]
         });
       }
-      // すぐ繋げるように自動で「線を繋ぐ」モードにすると親切
       document.querySelector('[data-mode="connect"]').click();
     });
 
@@ -917,7 +940,6 @@
       selectedStar = null;
     });
 
-    // 星座情報のライブ反映
     function updateCaption() {
       captionTitle.textContent = nameInput.value;
       captionStory.textContent = storyInput.value;
@@ -925,15 +947,28 @@
     nameInput.addEventListener('input', updateCaption);
     storyInput.addEventListener('input', updateCaption);
 
-    // 情報パネル折りたたみ
-    const infoPanel = document.getElementById('infoPanel');
-    const toggleInfoBtn = document.getElementById('toggleInfoBtn');
-    toggleInfoBtn.addEventListener('click', () => {
-      infoPanel.classList.toggle('collapsed');
-      toggleInfoBtn.textContent = infoPanel.classList.contains('collapsed') ? '開く' : '折りたたむ';
+    // iOSでキーボードを閉じた後のスクロールズレ防止
+    [nameInput, storyInput].forEach(el => {
+      el.addEventListener('blur', () => {
+        window.scrollTo(0, 0);
+        setTimeout(resize, 100);
+      });
     });
 
-    // ランダム神話ジェネレーター
+    // 折りたたみ制御（画面が狭い端末では初期折りたたみ）
+    function setCollapsed(collapsed) {
+      infoPanel.classList.toggle('collapsed', collapsed);
+      toggleInfoBtn.textContent = collapsed ? '開く' : '折りたたむ';
+    }
+
+    toggleInfoBtn.addEventListener('click', () => {
+      setCollapsed(!infoPanel.classList.contains('collapsed'));
+    });
+
+    if (window.innerWidth <= 900 || window.innerHeight <= 680) {
+      setCollapsed(true);
+    }
+
     const sampleNames = [
       '夜更かし猫座', '星屑の喫茶店座', '旅するクジラ座', '眠れぬフクロウ座',
       '銀のティーカップ座', '忘却の鍵座', '月光のペンギン座', '流れ星のランタン座'
@@ -950,7 +985,6 @@
       updateCaption();
     });
 
-    // 鑑賞モード
     document.getElementById('viewModeBtn').addEventListener('click', () => {
       document.body.classList.add('view-mode');
       selectedStar = null;
@@ -959,7 +993,6 @@
       document.body.classList.remove('view-mode');
     });
 
-    // PNG保存
     document.getElementById('saveBtn').addEventListener('click', () => {
       drawSky(frame, true);
       const link = document.createElement('a');
@@ -970,16 +1003,15 @@
       drawSky(frame, false);
     });
 
-    // 初期サンプルとして小さな北斗七星風の星を少し配置（空っぽより触りやすいため不要なら削除可）
     function initDemo() {
       const demoCoords = [
-        { nx: -0.22, ny: -0.10, size: 4, color: '#9fd3ff' },
-        { nx: -0.12, ny: -0.13, size: 4, color: '#fff8e7' },
-        { nx: -0.05, ny: -0.07, size: 4, color: '#fff8e7' },
-        { nx: 0.03, ny: -0.03, size: 2.5, color: '#fff8e7' },
-        { nx: 0.14, ny: -0.06, size: 6, color: '#ffd27d' },
-        { nx: 0.17, ny: 0.05, size: 4, color: '#fff8e7' },
-        { nx: 0.05, ny: 0.07, size: 4, color: '#9fd3ff' }
+        { nx: -0.22, ny: -0.14, size: 4, color: '#9fd3ff' },
+        { nx: -0.12, ny: -0.17, size: 4, color: '#fff8e7' },
+        { nx: -0.05, ny: -0.11, size: 4, color: '#fff8e7' },
+        { nx: 0.03, ny: -0.07, size: 2.5, color: '#fff8e7' },
+        { nx: 0.14, ny: -0.10, size: 6, color: '#ffd27d' },
+        { nx: 0.17, ny: 0.01, size: 4, color: '#fff8e7' },
+        { nx: 0.05, ny: 0.03, size: 4, color: '#9fd3ff' }
       ];
       demoCoords.forEach(c => {
         stars.push({ id: nextStarId++, ...c });
@@ -993,7 +1025,13 @@
       updateCaption();
     }
 
+    // 端末の回転やアドレスバー伸縮にも追従
     window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', () => setTimeout(resize, 150));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resize);
+    }
+
     resize();
     initDemo();
     animate();
