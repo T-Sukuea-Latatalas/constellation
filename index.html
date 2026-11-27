@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -10,7 +11,8 @@
   <style>
     :root {
       --bg-void: #05070c;
-      --surface: rgba(11, 14, 22, 0.86);
+      --surface: rgba(11, 14, 22, 0.88);
+      --surface-solid: #0b0e16;
       --surface-hover: rgba(255, 255, 255, 0.06);
       --border: rgba(255, 255, 255, 0.11);
       --border-strong: rgba(255, 255, 255, 0.22);
@@ -101,6 +103,30 @@
       font-size: 11px;
       letter-spacing: 0.14em;
       color: var(--text-secondary);
+    }
+
+    /* 銅版画の欄外注釈風マイクロコピー */
+    .margin-note {
+      position: fixed;
+      top: calc(18px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 6;
+      font-family: var(--font-serif);
+      font-size: 11.5px;
+      letter-spacing: 0.12em;
+      color: rgba(212, 180, 131, 0.62);
+      text-align: center;
+      pointer-events: none;
+      white-space: nowrap;
+      max-width: calc(100vw - 40px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: opacity 0.9s ease;
+    }
+
+    .margin-note.hidden {
+      opacity: 0;
     }
 
     /* 左下：座標テレメトリ */
@@ -250,11 +276,16 @@
       background: transparent;
       border: none;
       color: var(--text-secondary);
-      padding: 3px 8px;
+      padding: 4px 9px;
       font-size: 11px;
       cursor: pointer;
       font-family: var(--font-sans);
       transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .seg-btn:hover {
+      color: var(--text-primary);
     }
 
     .seg-btn.active {
@@ -561,17 +592,26 @@
       background: var(--brass-dim);
     }
 
-    /* 夜空のタイトル銘板 */
+    /* 夜空のタイトル銘板（通常編集時はタップ可能） */
     .plate-caption {
       position: fixed;
       bottom: var(--dock-offset);
       left: 50%;
       transform: translateX(-50%);
-      z-index: 4;
+      z-index: 6;
       text-align: center;
-      pointer-events: none;
+      pointer-events: auto;
+      cursor: pointer;
       width: min(84vw, 560px);
-      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  opacity 0.25s ease,
+                  background 0.2s ease;
+    }
+
+    .plate-caption:hover {
+      background: rgba(255, 255, 255, 0.025);
     }
 
     .plate-caption h2 {
@@ -581,6 +621,12 @@
       font-size: clamp(18px, 2.6vw, 26px);
       letter-spacing: 0.22em;
       color: rgba(236, 239, 244, 0.92);
+    }
+
+    .plate-caption.empty h2 {
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      color: rgba(212, 180, 131, 0.55);
     }
 
     .plate-caption p {
@@ -599,29 +645,295 @@
       pointer-events: none;
     }
 
-    body.view-mode .chrome:not(.exit-view),
+    /* 言霊入力時はポップオーバーを画面上部に保持するため、背面干渉要素のみ抑える */
+    body.editing-cipher .dock,
+    body.editing-cipher .selection-bar,
+    body.editing-cipher .plate-caption {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    body.view-mode .chrome:not(.view-controls),
     body.view-mode .brand,
-    body.view-mode .telemetry {
+    body.view-mode .telemetry,
+    body.view-mode .margin-note {
       opacity: 0;
       pointer-events: none;
     }
 
     body.view-mode .plate-caption {
       bottom: calc(36px + env(safe-area-inset-bottom));
+      pointer-events: none;
+      cursor: default;
+      background: transparent;
     }
 
-    .exit-view {
+    body.recording-video .plate-caption {
+      opacity: 0 !important;
+    }
+
+    /* 鑑賞モード右上コントロール */
+    .view-controls {
       position: fixed;
       top: calc(14px + env(safe-area-inset-top));
       right: calc(14px + env(safe-area-inset-right));
       z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
       opacity: 0;
       pointer-events: none;
     }
 
-    body.view-mode .exit-view {
-      opacity: 0.88;
+    body.view-mode .view-controls {
+      opacity: 0.9;
       pointer-events: auto;
+    }
+
+    .rec-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--danger);
+      display: inline-block;
+    }
+
+    .tool-btn.recording .rec-dot {
+      animation: recPulse 1s infinite ease-in-out;
+    }
+
+    @keyframes recPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    /* 言霊星喚ポップオーバー（画面上部中央に静かに展開） */
+    .popover-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 28;
+      background: rgba(5, 7, 12, 0.42);
+      display: none;
+    }
+
+    .popover-backdrop.open {
+      display: block;
+    }
+
+    .cipher-popover {
+      position: fixed;
+      top: calc(64px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      width: min(92vw, 340px);
+      padding: 14px 16px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+    }
+
+    .cipher-popover.open {
+      display: flex;
+    }
+
+    .popover-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .popover-title {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.14em;
+      color: var(--brass);
+    }
+
+    .popover-sub {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .popover-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      height: 32px;
+      background: var(--brass-dim);
+      border: 1px solid rgba(212, 180, 131, 0.45);
+      border-radius: 4px;
+      color: var(--brass);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover {
+      background: rgba(212, 180, 131, 0.25);
+    }
+
+    .btn-secondary {
+      flex: 1;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+    }
+
+    .close-icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .close-icon-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-hover);
+    }
+
+    /* 書き出し・共有モーダル */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(3, 5, 10, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .export-modal {
+      width: min(94vw, 620px);
+      max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 28px 70px rgba(0, 0, 0, 0.85);
+    }
+
+    .modal-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: var(--brass);
+    }
+
+    .modal-body {
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ratio-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ratio-label {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+    }
+
+    .preview-stage {
+      background: #030408;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .preview-stage img {
+      max-width: 100%;
+      max-height: min(44dvh, 380px);
+      width: auto;
+      height: auto;
+      display: block;
+      border-radius: 2px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+      user-select: auto;
+      -webkit-user-select: auto;
+      -webkit-touch-callout: default;
+    }
+
+    .preview-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .modal-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .modal-actions-grid .btn-primary,
+    .modal-actions-grid .btn-secondary {
+      height: 36px;
+      font-size: 12px;
+      padding: 0 10px;
     }
 
     svg.icon {
@@ -642,6 +954,9 @@
         gap: 4px 8px;
         padding: 6px 8px;
       }
+      .margin-note {
+        top: calc(48px + env(safe-area-inset-top));
+      }
     }
 
     @media (max-width: 640px) {
@@ -660,6 +975,12 @@
       .tool-btn {
         padding: 5px 6px;
       }
+      .modal-actions-grid {
+        grid-template-columns: 1fr;
+      }
+      .view-controls .label-text {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -672,6 +993,9 @@
     <span class="brand-title">ASTERISM</span>
     <span class="brand-sub">天球製図室</span>
   </div>
+
+  <!-- 欄外注釈風マイクロコピー -->
+  <div class="margin-note" id="marginNote">天球に触れて星を灯し、結線で形を編み、銘板から名を授けてください</div>
 
   <!-- 左下テレメトリ -->
   <div class="telemetry" id="telemetry">
@@ -715,8 +1039,8 @@
     </div>
   </aside>
 
-  <!-- 銘板キャプション -->
-  <div class="plate-caption">
+  <!-- 銘板キャプション（通常編集時はタップで記録欄を展開） -->
+  <div class="plate-caption" id="plateCaption" role="button" tabindex="0" title="タップして星座名や覚え書きを編集">
     <h2 id="captionTitle"></h2>
     <p id="captionStory"></p>
   </div>
@@ -796,9 +1120,9 @@
 
     <!-- 補助アクション -->
     <div class="dock-group">
-      <button class="tool-btn" id="scatterBtn" type="button" title="ランダムに星を散らす">
+      <button class="tool-btn" id="scatterBtn" type="button" title="言葉から星を呼ぶ／無作為に星を散らす">
         <svg class="icon" viewBox="0 0 16 16"><circle cx="4" cy="5" r="0.9"/><circle cx="11.5" cy="4" r="0.9"/><circle cx="8" cy="9" r="0.9"/><circle cx="4.5" cy="12" r="0.9"/><circle cx="12" cy="11.5" r="0.9"/></svg>
-        <span class="label-text">散星</span>
+        <span class="label-text">星喚</span>
       </button>
       <button class="tool-btn" id="undoBtn" type="button" title="1つ戻す (Ctrl/Cmd+Z)" disabled>
         <svg class="icon" viewBox="0 0 16 16"><path d="M5 6.5H2.5V4"/><path d="M2.8 6.5A5.2 5.2 0 1 1 4 12.2"/></svg>
@@ -818,23 +1142,99 @@
         <svg class="icon" viewBox="0 0 16 16"><path d="M2 5.5V3h2.5M14 5.5V3h-2.5M2 10.5V13h2.5M14 10.5V13h-2.5"/></svg>
         <span class="label-text">鑑賞</span>
       </button>
-      <button class="tool-btn export-btn show-label" id="exportBtn" type="button" title="星図を4:3のPNG画像として書き出す">
+      <button class="tool-btn export-btn show-label" id="exportBtn" type="button" title="星図版プレビュー・共有・書き出し">
         <svg class="icon" viewBox="0 0 16 16"><path d="M8 2.5v7.5M5 7.5l3 3 3-3M3 12.5h10"/></svg>
         <span class="label-text">書き出し</span>
       </button>
     </div>
   </nav>
 
-  <button class="chrome tool-btn exit-view" id="exitViewBtn" type="button">
-    <svg class="icon" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-    <span>編集に戻る</span>
-  </button>
+  <!-- 鑑賞モードコントロール -->
+  <div class="chrome view-controls" id="viewControls">
+    <button class="tool-btn show-label" id="replayBtn" type="button" title="星と結線の軌跡を再生">
+      <svg class="icon" id="replayIcon" viewBox="0 0 16 16"><path d="M5 3.5l7 4.5-7 4.5z"/></svg>
+      <span class="label-text" id="replayLabel">観測再生</span>
+    </button>
+    <button class="tool-btn show-label" id="recordVideoBtn" type="button" title="観測再生を動画として録画保存" style="display:none;">
+      <span class="rec-dot"></span>
+      <span class="label-text" id="recordLabel">動画保存</span>
+    </button>
+    <div class="dock-sep"></div>
+    <button class="tool-btn show-label" id="exitViewBtn" type="button" title="編集に戻る (Esc)">
+      <svg class="icon" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      <span class="label-text">編集に戻る</span>
+    </button>
+  </div>
+
+  <!-- 言霊星喚ポップオーバー -->
+  <div class="popover-backdrop" id="cipherBackdrop"></div>
+  <div class="chrome cipher-popover" id="cipherPopover" role="dialog" aria-label="言霊星喚">
+    <div class="popover-head">
+      <span class="popover-title">STELLAR CIPHER / 言霊星喚</span>
+      <button class="close-icon-btn" id="closeCipherBtn" type="button" aria-label="閉じる">
+        <svg class="icon" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <p class="popover-sub">名前や言葉を天球へ捧げると、固有の星図が召喚されます。</p>
+    <input type="text" id="cipherInput" placeholder="名前、推しの名、任意の言葉" maxlength="32">
+    <div class="popover-actions">
+      <button class="btn-primary" id="summonCipherBtn" type="button">星を呼ぶ</button>
+      <button class="btn-secondary" id="randomScatterBtn" type="button">無作為に散らす</button>
+    </div>
+  </div>
+
+  <!-- 星図版プレビュー＆共有モーダル -->
+  <div class="modal-backdrop" id="exportModalBackdrop">
+    <div class="chrome export-modal" id="exportModal" role="dialog" aria-modal="true" aria-label="星図版プレビュー">
+      <div class="modal-header">
+        <span class="modal-title">PLATE PREVIEW / 星図版 書き出し・共有</span>
+        <button class="close-icon-btn" id="closeExportModalBtn" type="button" aria-label="閉じる">
+          <svg class="icon" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="ratio-bar">
+          <span class="ratio-label">FORMAT / 比率選択</span>
+          <div class="seg-control" id="ratioToggle">
+            <button class="seg-btn active" data-ratio="4:3" type="button">4:3 額装</button>
+            <button class="seg-btn" data-ratio="4:5" type="button">4:5 標本</button>
+            <button class="seg-btn" data-ratio="9:16" type="button">9:16 天球</button>
+          </div>
+        </div>
+
+        <div class="preview-stage">
+          <img id="exportPreviewImg" alt="生成された星図版プレビュー">
+          <span class="preview-hint">画像は長押し／右クリックからも保存できます</span>
+        </div>
+
+        <div class="modal-actions-grid">
+          <button class="btn-primary" id="downloadPlateBtn" type="button">
+            <svg class="icon" viewBox="0 0 16 16"><path d="M8 2.5v7.5M5 7.5l3 3 3-3M3 12.5h10"/></svg>
+            <span>画像を保存</span>
+          </button>
+          <button class="btn-secondary" id="nativeShareBtn" type="button">
+            <svg class="icon" viewBox="0 0 16 16"><circle cx="12" cy="3.5" r="1.5"/><circle cx="4" cy="8" r="1.5"/><circle cx="12" cy="12.5" r="1.5"/><path d="M5.4 7.2l5.2-2.9M5.4 8.8l5.2 2.9"/></svg>
+            <span id="nativeShareLabel">SNSへ共有 / 送る</span>
+          </button>
+          <button class="btn-secondary" id="copyChartUrlBtn" type="button">
+            <svg class="icon" viewBox="0 0 16 16"><path d="M6.5 9.5a3 3 0 0 0 4.2 0l2-2a3 3 0 0 0-4.2-4.2l-1 1"/><path d="M9.5 6.5a3 3 0 0 0-4.2 0l-2 2a3 3 0 0 0 4.2 4.2l1-1"/></svg>
+            <span id="copyChartUrlLabel">星図URLをコピー</span>
+          </button>
+          <button class="btn-secondary" id="copyChallengeUrlBtn" type="button">
+            <svg class="icon" viewBox="0 0 16 16"><path d="M3 8h10M8 3v10"/><circle cx="3" cy="8" r="1.2"/><circle cx="13" cy="8" r="1.2"/></svg>
+            <span id="copyChallengeUrlLabel">お題URLをコピー（線なし）</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const canvas = document.getElementById('skyCanvas');
     const ctx = canvas.getContext('2d');
 
     const dock = document.getElementById('dock');
+    const marginNote = document.getElementById('marginNote');
     const selectionBar = document.getElementById('selectionBar');
     const selectionCountEl = document.getElementById('selectionCount');
     const selectAllBtn = document.getElementById('selectAllBtn');
@@ -846,6 +1246,7 @@
     const chevronIcon = document.getElementById('chevronIcon');
     const nameInput = document.getElementById('constellationName');
     const storyInput = document.getElementById('constellationStory');
+    const plateCaption = document.getElementById('plateCaption');
     const captionTitle = document.getElementById('captionTitle');
     const captionStory = document.getElementById('captionStory');
     const coordRA = document.getElementById('coordRA');
@@ -857,16 +1258,40 @@
     const starOptionsBar = document.getElementById('starOptionsBar');
     const eraserOptionsBar = document.getElementById('eraserOptionsBar');
 
+    const cipherBackdrop = document.getElementById('cipherBackdrop');
+    const cipherPopover = document.getElementById('cipherPopover');
+    const cipherInput = document.getElementById('cipherInput');
+
+    const exportModalBackdrop = document.getElementById('exportModalBackdrop');
+    const exportPreviewImg = document.getElementById('exportPreviewImg');
+    const replayBtn = document.getElementById('replayBtn');
+    const replayLabel = document.getElementById('replayLabel');
+    const replayIcon = document.getElementById('replayIcon');
+    const recordVideoBtn = document.getElementById('recordVideoBtn');
+    const recordLabel = document.getElementById('recordLabel');
+
+    const SIZE_VALUES = [5.2, 3.6, 2.3];
+    const COLOR_VALUES = ['#f2f6ff', '#9ec5ff', '#ffe7ba', '#ffb88c'];
+    const GREEK_BAYER = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ'];
+    const EXPORT_PRESETS = {
+      '4:3': { w: 1600, h: 1200 },
+      '4:5': { w: 1200, h: 1500 },
+      '9:16': { w: 1080, h: 1920 }
+    };
+    const DEFAULT_TITLES = new Set(['', '白鳥の片翼', '無名星図 I']);
+
     let width = window.innerWidth;
     let height = window.innerHeight;
     let dpr = 1;
 
-    let mode = 'place';
+    let mode = 'connect';
     let currentSize = 3.6;
     let currentColor = '#f2f6ff';
     let eraserRadius = 22;
     let showGrid = true;
     let lineStyle = 'solid';
+    let currentSeedLabel = '';
+    let exportRatio = '4:3';
 
     let stars = [];
     let lines = [];
@@ -874,6 +1299,11 @@
     let nextId = 1;
     let bgStars = [];
 
+    // オンボーディング状態
+    let marginNoteDismissed = false;
+    let isolatedGuideMode = 'none'; // 'none' | 'isolated' | 'challenge'
+
+    // ポインター・ツール状態
     let activePointerId = null;
     let lastPointerType = 'mouse';
     let isPointerDown = false;
@@ -903,7 +1333,33 @@
 
     let isEditingText = false;
     let isViewMode = false;
+    let isCipherOpen = false;
+    let isExportModalOpen = false;
 
+    // プレビュー出力キャッシュ
+    let currentPreviewBlob = null;
+    let currentPreviewUrl = null;
+
+    // アニメーション再生 & 動画録画状態
+    let playback = {
+      active: false,
+      startTime: 0,
+      starDelay: 150,
+      starFade: 360,
+      lineDur: 320,
+      captionFade: 750,
+      holdEnd: 1350,
+      totalDur: 0
+    };
+    let recorderState = {
+      recording: false,
+      recorder: null,
+      chunks: [],
+      mimeType: '',
+      ext: 'webm'
+    };
+
+    // ユーティリティ
     function hexToRgba(hex, alpha) {
       const clean = hex.replace('#', '');
       const full = clean.length === 3
@@ -916,6 +1372,15 @@
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
+    }
+
+    function easeInOutCubic(t) {
+      const x = Math.max(0, Math.min(1, t));
+      return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    }
+
     function getScale(w = width, h = height) {
       return Math.min(w, h);
     }
@@ -926,6 +1391,24 @@
 
     function toNorm(sx, sy, w = width, h = height, s = getScale(w, h)) {
       return { nx: (sx - w / 2) / s, ny: (sy - h / 2) / s };
+    }
+
+    function calcCelestialCoord(nx, ny) {
+      const raRatio = Math.max(0, Math.min(0.999, (nx + 0.85) / 1.7));
+      const raTotalMin = Math.floor(raRatio * 24 * 60);
+      const raH = String(Math.floor(raTotalMin / 60)).padStart(2, '0');
+      const raM = String(raTotalMin % 60).padStart(2, '0');
+
+      const decDegTotal = Math.max(-89, Math.min(89, Math.round(-ny * 90)));
+      const decSign = decDegTotal >= 0 ? '+' : '-';
+      const decAbs = String(Math.abs(decDegTotal)).padStart(2, '0');
+      return { ra: `${raH}h ${raM}m`, dec: `${decSign}${decAbs}° 00'` };
+    }
+
+    function dismissMarginNote() {
+      if (marginNoteDismissed) return;
+      marginNoteDismissed = true;
+      marginNote.classList.add('hidden');
     }
 
     function syncDockMetric() {
@@ -958,13 +1441,14 @@
     }
 
     function resize() {
-      if (isEditingText) return;
+      if (isEditingText || recorderState.recording) return;
       const rect = canvas.getBoundingClientRect();
       width = rect.width || window.innerWidth;
       height = rect.height || window.innerHeight;
       dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
+      // 動画録画のエンコーダ互換性のため偶数ピクセルに揃える
+      canvas.width = Math.round(width * dpr) & ~1;
+      canvas.height = Math.round(height * dpr) & ~1;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       if (bgStars.length === 0) {
@@ -992,17 +1476,9 @@
 
     function updateTelemetry() {
       const norm = toNorm(pointerPos.x, pointerPos.y);
-      const raRatio = Math.max(0, Math.min(0.999, (norm.nx + 0.85) / 1.7));
-      const raTotalMin = Math.floor(raRatio * 24 * 60);
-      const raH = String(Math.floor(raTotalMin / 60)).padStart(2, '0');
-      const raM = String(raTotalMin % 60).padStart(2, '0');
-
-      const decDegTotal = Math.max(-89, Math.min(89, Math.round(-norm.ny * 90)));
-      const decSign = decDegTotal >= 0 ? '+' : '-';
-      const decAbs = String(Math.abs(decDegTotal)).padStart(2, '0');
-
-      coordRA.textContent = `${raH}h ${raM}m`;
-      coordDec.textContent = `${decSign}${decAbs}° 00'`;
+      const coord = calcCelestialCoord(norm.nx, norm.ny);
+      coordRA.textContent = coord.ra;
+      coordDec.textContent = coord.dec;
       starCountEl.textContent = stars.length;
       lineCountEl.textContent = lines.length;
     }
@@ -1010,7 +1486,8 @@
     function cloneState() {
       return {
         stars: stars.map(s => ({ ...s })),
-        lines: lines.map(l => ({ ...l }))
+        lines: lines.map(l => ({ ...l })),
+        seed: currentSeedLabel
       };
     }
 
@@ -1025,10 +1502,11 @@
     }
 
     function undo() {
-      if (isViewMode || history.length === 0) return;
+      if (isViewMode || isModalActive() || history.length === 0) return;
       const prev = history.pop();
       stars = prev.stars;
       lines = prev.lines;
+      currentSeedLabel = prev.seed || '';
       clearTransientStates();
       selectedStarIds.clear();
       undoBtn.disabled = history.length === 0;
@@ -1053,6 +1531,232 @@
       eraseDidDelete = false;
     }
 
+    function isModalActive() {
+      return isCipherOpen || isExportModalOpen;
+    }
+
+    // 決定論的PRNG（言霊星喚）
+    function fnv1aBytes(str) {
+      const bytes = new TextEncoder().encode(str);
+      let h = 0x811c9dc5;
+      for (let i = 0; i < bytes.length; i++) {
+        h ^= bytes[i];
+        h = Math.imul(h, 0x01000193);
+      }
+      return h >>> 0;
+    }
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function() {
+        let t = (a += 0x6D2B79F5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function generateStarsFromSeed(seedString, isRandomSeed = false) {
+      const cleanSeed = seedString.trim();
+      if (!cleanSeed) return;
+
+      saveHistory();
+      const rng = mulberry32(fnv1aBytes(cleanSeed));
+      const count = 7 + Math.floor(rng() * 7); // 7〜13星
+      const generated = [];
+      const minDist = 0.088;
+
+      for (let i = 0; i < count; i++) {
+        let nx = 0, ny = 0;
+        let placed = false;
+        for (let attempt = 0; attempt < 60; attempt++) {
+          // 中心寄りに優雅に分布するボックス型乱数
+          const rx = (rng() + rng() - 1) * 0.34;
+          const ry = (rng() + rng() - 1) * 0.27 - 0.02;
+          const tooClose = generated.some(g => Math.hypot(g.nx - rx, g.ny - ry) < minDist);
+          if (!tooClose) {
+            nx = rx;
+            ny = ry;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) {
+          nx = (rng() - 0.5) * 0.58;
+          ny = (rng() - 0.5) * 0.44 - 0.02;
+        }
+
+        // 等級：最初の1〜2個に1等星を保証しつつ分布
+        let size = 3.6;
+        if (i === 0 || rng() < 0.18) size = 5.2;
+        else if (rng() < 0.45) size = 2.3;
+
+        const color = COLOR_VALUES[Math.floor(rng() * COLOR_VALUES.length)];
+        generated.push({
+          id: nextId++,
+          nx,
+          ny,
+          size,
+          color
+        });
+      }
+
+      stars = generated;
+      lines = [];
+      currentSeedLabel = cleanSeed;
+      isolatedGuideMode = 'challenge';
+
+      const currentTitle = nameInput.value.trim();
+      if (DEFAULT_TITLES.has(currentTitle)) {
+        if (isRandomSeed) {
+          nameInput.value = `${cleanSeed} 星群`;
+        } else {
+          const base = cleanSeed.slice(0, 12);
+          nameInput.value = base.endsWith('座') ? base : `${base}座`;
+        }
+        storyInput.value = isRandomSeed
+          ? '無作為の天球から掬い上げられた星群。'
+          : `「${cleanSeed}」の名を宿して天球に招かれた星々。`;
+        updateCaption();
+      }
+
+      updateTelemetry();
+      setMode('connect');
+    }
+
+    // URLハッシュ エンコード／デコード
+    function encodeBase64Url(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function decodeBase64Url(b64) {
+      const padded = b64.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b64.length + 3) % 4);
+      const bin = atob(padded);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    function buildChartShareUrl(isChallenge = false) {
+      const idToIdx = new Map(stars.map((s, idx) => [s.id, idx]));
+      const payload = {
+        v: 1,
+        n: nameInput.value.trim(),
+        s: storyInput.value.trim(),
+        sd: currentSeedLabel || '',
+        g: showGrid ? 1 : 0,
+        ls: lineStyle === 'dashed' ? 1 : 0,
+        ch: isChallenge ? 1 : 0,
+        st: stars.map(s => [
+          Math.round(s.nx * 10000) / 10000,
+          Math.round(s.ny * 10000) / 10000,
+          Math.max(0, SIZE_VALUES.indexOf(s.size)),
+          Math.max(0, COLOR_VALUES.indexOf(s.color))
+        ]),
+        ln: isChallenge
+          ? []
+          : lines
+              .map(l => [idToIdx.get(l.from), idToIdx.get(l.to)])
+              .filter(p => p[0] !== undefined && p[1] !== undefined)
+      };
+      const encoded = encodeBase64Url(JSON.stringify(payload));
+      const base = window.location.href.split('#')[0];
+      return `${base}#chart=${encoded}`;
+    }
+
+    function loadFromUrlHash() {
+      const hash = window.location.hash || '';
+      if (!hash || hash.length < 3) return false;
+
+      try {
+        if (hash.startsWith('#seed=')) {
+          const seedStr = decodeURIComponent(hash.slice(6)).trim();
+          if (!seedStr) return false;
+          stars = [];
+          lines = [];
+          history = [];
+          undoBtn.disabled = true;
+          generateStarsFromSeed(seedStr, false);
+          history = [];
+          undoBtn.disabled = true;
+          marginNote.textContent = 'この星群に線を結び、あなただけの星座を編み上げてください';
+          return true;
+        }
+
+        if (hash.startsWith('#chart=')) {
+          const jsonStr = decodeBase64Url(hash.slice(7));
+          const data = JSON.parse(jsonStr);
+          if (!data || !Array.isArray(data.st)) return false;
+
+          nextId = 1;
+          stars = [];
+          lines = [];
+          history = [];
+          undoBtn.disabled = true;
+
+          const idxToId = [];
+          for (const item of data.st) {
+            if (!Array.isArray(item) || item.length < 2) continue;
+            const nx = Number(item[0]);
+            const ny = Number(item[1]);
+            if (!Number.isFinite(nx) || !Number.isFinite(ny)) continue;
+            const sizeIdx = Math.min(SIZE_VALUES.length - 1, Math.max(0, Number(item[2]) || 0));
+            const colorIdx = Math.min(COLOR_VALUES.length - 1, Math.max(0, Number(item[3]) || 0));
+            const starObj = {
+              id: nextId++,
+              nx: Math.max(-1.5, Math.min(1.5, nx)),
+              ny: Math.max(-1.5, Math.min(1.5, ny)),
+              size: SIZE_VALUES[sizeIdx],
+              color: COLOR_VALUES[colorIdx]
+            };
+            idxToId.push(starObj.id);
+            stars.push(starObj);
+          }
+
+          const isChallenge = data.ch === 1;
+          if (!isChallenge && Array.isArray(data.ln)) {
+            for (const pair of data.ln) {
+              if (!Array.isArray(pair) || pair.length < 2) continue;
+              const idA = idxToId[pair[0]];
+              const idB = idxToId[pair[1]];
+              if (idA !== undefined && idB !== undefined) {
+                addLineUnique(idA, idB);
+              }
+            }
+          }
+
+          nameInput.value = typeof data.n === 'string' ? data.n.slice(0, 28) : '';
+          storyInput.value = typeof data.s === 'string' ? data.s : '';
+          currentSeedLabel = typeof data.sd === 'string' ? data.sd : '';
+          setGridVisible(data.g !== 0);
+          setLineStyleValue(data.ls === 1 ? 'dashed' : 'solid');
+          updateCaption();
+          updateTelemetry();
+
+          if (!isChallenge && lines.length > 0) {
+            isolatedGuideMode = 'none';
+            dismissMarginNote();
+            toggleViewMode(true);
+          } else {
+            toggleViewMode(false);
+            setMode('connect');
+            isolatedGuideMode = 'challenge';
+            marginNote.textContent = 'この星群に線を結び、あなただけの星座を編み上げてください';
+            marginNoteDismissed = false;
+            marginNote.classList.remove('hidden');
+          }
+          return true;
+        }
+      } catch (err) {
+        console.warn('Invalid URL hash ignored:', err);
+      }
+      return false;
+    }
+
+    // 幾何計算ユーティリティ
     function findStarAt(sx, sy, threshold = 24) {
       let hit = null;
       let minD = threshold;
@@ -1221,6 +1925,15 @@
       if (lineExists(s1.id, s2.id)) return false;
       saveHistory();
       insertLineWithIntersections(s1.id, s2.id);
+      if (isolatedGuideMode === 'challenge' && lines.length > 0) {
+        isolatedGuideMode = 'none';
+      } else if (isolatedGuideMode === 'isolated') {
+        const connectedSet = new Set();
+        lines.forEach(l => { connectedSet.add(l.from); connectedSet.add(l.to); });
+        if (stars.every(st => connectedSet.has(st.id))) {
+          isolatedGuideMode = 'none';
+        }
+      }
       updateTelemetry();
       return true;
     }
@@ -1329,7 +2042,7 @@
     }
 
     function updateCursor(isTouch) {
-      if (isViewMode || isTouch) {
+      if (isViewMode || isTouch || isModalActive()) {
         canvas.style.cursor = 'default';
         return;
       }
@@ -1349,12 +2062,15 @@
       }
     }
 
+    // Pointer Events
     canvas.addEventListener('pointerdown', e => {
-      if (isViewMode) return;
+      if (isViewMode || isModalActive()) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (activePointerId !== null) return;
 
       e.preventDefault();
+      dismissMarginNote();
+
       activePointerId = e.pointerId;
       lastPointerType = e.pointerType || 'mouse';
       isPointerDown = true;
@@ -1371,6 +2087,7 @@
       const touchHitThreshold = lastPointerType === 'touch' ? 28 : 22;
 
       if (mode === 'place') {
+        isolatedGuideMode = 'none';
         const norm = toNorm(pos.x, pos.y);
         placingStar = {
           nx: norm.nx,
@@ -1419,6 +2136,7 @@
           selectedStar = null;
         }
       } else if (mode === 'erase') {
+        isolatedGuideMode = 'none';
         eraseSnapshot = cloneState();
         eraseDidDelete = false;
         eraseAlongStroke(pos, pos);
@@ -1428,7 +2146,7 @@
     });
 
     window.addEventListener('pointermove', e => {
-      if (isViewMode) {
+      if (isViewMode || isModalActive()) {
         hoveredStar = null;
         return;
       }
@@ -1515,7 +2233,7 @@
       isPointerDown = false;
       activePointerId = null;
 
-      if (!isViewMode && !isCancel) {
+      if (!isViewMode && !isModalActive() && !isCancel) {
         if (mode === 'place' && placingStar) {
           saveHistory();
           stars.push({
@@ -1603,6 +2321,15 @@
     });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
+    // バイエル符号割り当て用の等級順ソート
+    function getSortedStarsForBayer() {
+      return [...stars].sort((a, b) => {
+        if (b.size !== a.size) return b.size - a.size;
+        if (Math.abs(a.nx - b.nx) > 1e-4) return a.nx - b.nx;
+        return a.ny - b.ny;
+      });
+    }
+
     function drawCelestialGrid(c, w, h, scale, isExport = false) {
       if (!showGrid && !isExport) return;
       const cx = w / 2;
@@ -1631,7 +2358,7 @@
       }
 
       if (isExport) {
-        const m = 36;
+        const m = w < 1150 ? 40 : 36;
         c.strokeStyle = 'rgba(212, 180, 131, 0.28)';
         c.lineWidth = 1.2;
         c.strokeRect(m, m, w - m * 2, h - m * 2);
@@ -1648,7 +2375,7 @@
       c.restore();
     }
 
-    function wrapLines(c, text, maxWidth) {
+    function wrapLines(c, text, maxWidth, maxLines = 4) {
       const result = [];
       for (const paragraph of text.split(/\r?\n/)) {
         let current = '';
@@ -1663,15 +2390,17 @@
         }
         result.push(current);
       }
-      return result.filter((_, idx, arr) => idx < 4 && (arr[idx] !== '' || arr.length === 1));
+      return result.filter((_, idx, arr) => idx < maxLines && (arr[idx] !== '' || arr.length === 1));
     }
 
-    function drawSingleStar(c, p, size, color, highlightColor = null) {
+    function drawSingleStar(c, p, size, color, highlightColor = null, alpha = 1, pulseScale = 1) {
+      if (alpha <= 0.005) return;
       c.save();
-      const haloR = size * 4.2;
+      c.globalAlpha *= alpha;
+      const haloR = size * 4.2 * pulseScale;
       const halo = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloR);
       halo.addColorStop(0, hexToRgba(color, 1));
-      halo.addColorStop(0.18, hexToRgba(color, 0.4));
+      halo.addColorStop(0.18, hexToRgba(color, 0.42));
       halo.addColorStop(0.5, hexToRgba(color, 0.08));
       halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
       c.fillStyle = halo;
@@ -1680,7 +2409,7 @@
       c.fill();
 
       if (size >= 4.5) {
-        const sp = size * 2.5;
+        const sp = size * 2.5 * pulseScale;
         c.strokeStyle = hexToRgba(color, 0.34);
         c.lineWidth = 0.75;
         c.beginPath();
@@ -1705,8 +2434,30 @@
       c.restore();
     }
 
-    // 任意のコンテキスト・サイズ・スケールに描画する共通レンダラー
-    function renderToContext(c, w, h, scale, time, isExport = false) {
+    // アニメーションタイムラインの進捗計算
+    function getPlaybackMetrics(nowMs) {
+      const elapsed = Math.max(0, nowMs - playback.startTime);
+      const tQuiet = 360;
+      const tStarsEnd = tQuiet + Math.max(0, stars.length - 1) * playback.starDelay + playback.starFade;
+      const tLinesStart = stars.length > 0 ? tStarsEnd + 160 : tQuiet;
+      const tLinesEnd = tLinesStart + lines.length * playback.lineDur;
+      const tCaptionStart = tLinesEnd + 180;
+      const tCaptionEnd = tCaptionStart + playback.captionFade;
+      const totalDur = tCaptionEnd + playback.holdEnd;
+      return {
+        elapsed,
+        tQuiet,
+        tStarsEnd,
+        tLinesStart,
+        tLinesEnd,
+        tCaptionStart,
+        tCaptionEnd,
+        totalDur
+      };
+    }
+
+    // 共通レンダラー（通常・書き出し・再生録画のすべてに対応）
+    function renderToContext(c, w, h, scale, time, isExport = false, exportOptions = null) {
       c.clearRect(0, 0, w, h);
 
       const bg = c.createRadialGradient(
@@ -1732,6 +2483,10 @@
       }
       c.globalAlpha = 1;
 
+      // 再生中進捗
+      const isPlaying = !isExport && playback.active;
+      const pb = isPlaying ? getPlaybackMetrics(performance.now()) : null;
+
       const starMap = new Map(stars.map(s => [s.id, s]));
       const sizeMul = isExport ? Math.max(0.85, Math.min(1.4, scale / 900)) : 1;
 
@@ -1743,10 +2498,18 @@
         c.setLineDash(isExport ? [6, 7] : [4, 5]);
       }
 
-      for (const l of lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
         const s1 = starMap.get(l.from);
         const s2 = starMap.get(l.to);
         if (!s1 || !s2) continue;
+
+        let lineProgress = 1;
+        if (isPlaying) {
+          const lineStart = pb.tLinesStart + i * playback.lineDur;
+          lineProgress = easeInOutCubic((pb.elapsed - lineStart) / playback.lineDur);
+          if (lineProgress <= 0) continue;
+        }
 
         const p1 = toScreen(s1.nx, s1.ny, w, h, scale);
         const p2 = toScreen(s2.nx, s2.ny, w, h, scale);
@@ -1760,9 +2523,16 @@
         if (dist > gap1 + gap2) {
           const ux = dx / dist;
           const uy = dy / dist;
+          const startX = p1.x + ux * gap1;
+          const startY = p1.y + uy * gap1;
+          const endX = p2.x - ux * gap2;
+          const endY = p2.y - uy * gap2;
+          const curX = startX + (endX - startX) * lineProgress;
+          const curY = startY + (endY - startY) * lineProgress;
+
           c.beginPath();
-          c.moveTo(p1.x + ux * gap1, p1.y + uy * gap1);
-          c.lineTo(p2.x - ux * gap2, p2.y - uy * gap2);
+          c.moveTo(startX, startY);
+          c.lineTo(curX, curY);
           c.stroke();
         }
       }
@@ -1782,9 +2552,47 @@
         ? new Set(getStarsInBox(selectionBox))
         : null;
 
+      // 孤立星パルス誘導用の接続セット
+      let connectedIds = null;
+      let challengePrimaryId = null;
+      if (!isExport && !isViewMode && isolatedGuideMode !== 'none' && mode === 'connect') {
+        connectedIds = new Set();
+        lines.forEach(l => { connectedIds.add(l.from); connectedIds.add(l.to); });
+        if (isolatedGuideMode === 'challenge' && stars.length > 0 && lines.length === 0) {
+          challengePrimaryId = getSortedStarsForBayer()[0].id;
+        }
+      }
+
+      // バイエル符号マップ（書き出し時のみ）
+      let bayerById = null;
+      let sortedForExport = null;
+      if (isExport) {
+        sortedForExport = getSortedStarsForBayer();
+        bayerById = new Map();
+        sortedForExport.forEach((st, idx) => {
+          if (idx < GREEK_BAYER.length) {
+            bayerById.set(st.id, GREEK_BAYER[idx]);
+          }
+        });
+      }
+
       // 確定済みの恒星
-      for (const s of stars) {
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
         const p = toScreen(s.nx, s.ny, w, h, scale);
+
+        let starAlpha = 1;
+        let pulseScale = 1;
+        if (isPlaying) {
+          const stStart = pb.tQuiet + i * playback.starDelay;
+          const raw = (pb.elapsed - stStart) / playback.starFade;
+          if (raw <= 0) continue;
+          const eased = easeOutCubic(raw);
+          starAlpha = eased;
+          // 灯る瞬間に柔らかな光の膨張→収束
+          pulseScale = raw < 1 ? (0.4 + Math.sin(eased * Math.PI) * 0.65 + eased * 0.6) : 1;
+        }
+
         let highlight = null;
         if (!isExport && !isViewMode) {
           if (selectedStar && selectedStar.id === s.id) {
@@ -1797,7 +2605,38 @@
             highlight = 'rgba(255, 255, 255, 0.45)';
           }
         }
-        drawSingleStar(c, p, s.size * sizeMul, s.color, highlight);
+
+        drawSingleStar(c, p, s.size * sizeMul, s.color, highlight, starAlpha, pulseScale);
+
+        // 控えめな孤立星パルス誘導（結ばれると消える）
+        if (connectedIds) {
+          const shouldPulse = isolatedGuideMode === 'isolated'
+            ? !connectedIds.has(s.id)
+            : (s.id === challengePrimaryId);
+          if (shouldPulse && (!selectedStar || selectedStar.id !== s.id)) {
+            const wave = (Math.sin(time * 0.055) + 1) * 0.5;
+            c.save();
+            c.strokeStyle = `rgba(212, 180, 131, ${0.18 + wave * 0.44})`;
+            c.lineWidth = 1;
+            c.beginPath();
+            c.arc(p.x, p.y, s.size + 8 + wave * 6, 0, Math.PI * 2);
+            c.stroke();
+            c.restore();
+          }
+        }
+
+        // バイエル符号印字（書き出し時）
+        if (isExport && bayerById && bayerById.has(s.id)) {
+          const sym = bayerById.get(s.id);
+          const starR = s.size * sizeMul;
+          c.save();
+          c.font = '400 13px "Shippori Mincho", serif';
+          c.fillStyle = 'rgba(212, 180, 131, 0.72)';
+          c.textAlign = 'left';
+          c.textBaseline = 'top';
+          c.fillText(sym, p.x + starR + 5, p.y + starR + 2);
+          c.restore();
+        }
       }
 
       // 範囲選択ボックス
@@ -1850,28 +2689,79 @@
         c.restore();
       }
 
-      // 4:3 PNG書き出し時の銘板レイアウト
+      // 動画録画中のみCanvas内に銘板文字を焼き込む
+      if (!isExport && recorderState.recording && isPlaying) {
+        const capAlpha = easeOutCubic((pb.elapsed - pb.tCaptionStart) / playback.captionFade);
+        if (capAlpha > 0.01) {
+          const title = nameInput.value.trim();
+          const story = storyInput.value.trim();
+          c.save();
+          c.globalAlpha = capAlpha;
+          c.textAlign = 'center';
+          const maxCapW = Math.min(560, w * 0.84);
+          let storyLines = [];
+          if (story) {
+            c.font = `400 ${Math.max(11, Math.min(13, w * 0.018))}px "Noto Sans JP", sans-serif`;
+            storyLines = wrapLines(c, story, maxCapW, 3);
+          }
+          const lineH = 20;
+          const bottomBase = h - 38;
+          const storyH = storyLines.length * lineH;
+          if (title) {
+            const titleY = bottomBase - storyH - (storyLines.length > 0 ? 14 : 0);
+            c.font = `400 ${Math.max(18, Math.min(26, w * 0.026))}px "Shippori Mincho", serif`;
+            c.fillStyle = 'rgba(236, 239, 244, 0.94)';
+            c.fillText(title.split('').join(' '), w / 2, titleY);
+          }
+          if (storyLines.length > 0) {
+            c.font = `400 ${Math.max(11, Math.min(13, w * 0.018))}px "Noto Sans JP", sans-serif`;
+            c.fillStyle = 'rgba(168, 178, 198, 0.82)';
+            storyLines.forEach((line, idx) => {
+              c.fillText(line, w / 2, bottomBase - (storyLines.length - 1 - idx) * lineH);
+            });
+          }
+          c.restore();
+        }
+      }
+
+      // 書き出し時のヘッダーメタ・タイトル銘板・Colophon
       if (isExport) {
-        const m = 36;
+        const m = w < 1150 ? 40 : 36;
         const title = nameInput.value.trim();
         const story = storyInput.value.trim();
         const today = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+        const primaryCoord = sortedForExport && sortedForExport.length > 0
+          ? calcCelestialCoord(sortedForExport[0].nx, sortedForExport[0].ny)
+          : { ra: '00h 00m', dec: '+00° 00\'' };
 
         c.save();
+        // 左上メタ
         c.font = '400 12px "IBM Plex Mono", monospace';
-        c.fillStyle = 'rgba(212, 180, 131, 0.75)';
+        c.fillStyle = 'rgba(212, 180, 131, 0.78)';
         c.textAlign = 'left';
         c.fillText(`ASTERISM  /  ${today}  /  ${stars.length} STARS`, m + 20, m + 30);
 
-        const maxTextWidth = 740;
+        c.font = '400 11px "IBM Plex Mono", monospace';
+        c.fillStyle = 'rgba(138, 147, 166, 0.72)';
+        c.fillText(`α  ${primaryCoord.ra}   ${primaryCoord.dec}`, m + 20, m + 49);
+
+        // 右上シード表記
+        if (currentSeedLabel) {
+          c.textAlign = 'right';
+          c.fillStyle = 'rgba(212, 180, 131, 0.65)';
+          c.fillText(`CIPHER: ${currentSeedLabel}`, w - m - 20, m + 30);
+        }
+
+        // 中央下 銘板
+        const maxTextWidth = Math.min(740, w - m * 2 - 72);
         let storyLines = [];
         if (story) {
           c.font = '400 15px "Noto Sans JP", sans-serif';
-          storyLines = wrapLines(c, story, maxTextWidth);
+          storyLines = wrapLines(c, story, maxTextWidth, 4);
         }
 
         const lineH = 24;
-        const bottomBase = h - m - 30;
+        const bottomBase = h - m - 34;
         const storyBlockH = storyLines.length * lineH;
 
         c.textAlign = 'center';
@@ -1890,6 +2780,13 @@
             c.fillText(line, w / 2, y);
           });
         }
+
+        // 古星図の版元表記（Colophon）を枠外縁の下隅に配置
+        c.font = '400 10px "IBM Plex Mono", "Noto Sans JP", monospace';
+        c.fillStyle = 'rgba(212, 180, 131, 0.54)';
+        c.textAlign = 'right';
+        c.fillText('PLATE BY ASTERISM — 天球製図室', w - m, h - m + 18);
+
         c.restore();
       }
     }
@@ -1897,9 +2794,143 @@
     let frame = 0;
     function loop() {
       frame++;
+
+      // 再生中のDOM銘板フェード同期・終了判定
+      if (playback.active) {
+        const pb = getPlaybackMetrics(performance.now());
+        if (!recorderState.recording) {
+          const capAlpha = easeOutCubic((pb.elapsed - pb.tCaptionStart) / playback.captionFade);
+          plateCaption.style.opacity = String(capAlpha);
+        }
+        if (pb.elapsed >= pb.totalDur) {
+          stopPlayback(true);
+        }
+      }
+
       renderToContext(ctx, width, height, getScale(), frame, false);
       requestAnimationFrame(loop);
     }
+
+    // --- 観測再生 ＆ 動画書き出し ---
+    function getSupportedVideoMime() {
+      if (typeof MediaRecorder === 'undefined' || typeof canvas.captureStream !== 'function') {
+        return null;
+      }
+      const candidates = [
+        { mime: 'video/mp4;codecs=avc1', ext: 'mp4' },
+        { mime: 'video/mp4', ext: 'mp4' },
+        { mime: 'video/webm;codecs=vp9', ext: 'webm' },
+        { mime: 'video/webm;codecs=vp8', ext: 'webm' },
+        { mime: 'video/webm', ext: 'webm' }
+      ];
+      for (const c of candidates) {
+        if (MediaRecorder.isTypeSupported(c.mime)) return c;
+      }
+      return { mime: '', ext: 'webm' };
+    }
+
+    const videoCapable = getSupportedVideoMime();
+    if (videoCapable) {
+      recordVideoBtn.style.display = 'inline-flex';
+    }
+
+    function updatePlaybackControlsUI() {
+      replayLabel.textContent = playback.active ? '停止' : '観測再生';
+      replayIcon.innerHTML = playback.active
+        ? '<rect x="4" y="4" width="8" height="8"/>'
+        : '<path d="M5 3.5l7 4.5-7 4.5z"/>';
+      recordVideoBtn.classList.toggle('recording', recorderState.recording);
+      recordLabel.textContent = recorderState.recording ? '記録中…' : '動画保存';
+      replayBtn.disabled = recorderState.recording;
+    }
+
+    function startPlayback(withRecording = false) {
+      if (playback.active) stopPlayback(false);
+
+      playback.active = true;
+      playback.startTime = performance.now();
+
+      if (!withRecording) {
+        plateCaption.style.opacity = '0';
+      } else if (videoCapable) {
+        try {
+          const stream = canvas.captureStream(30);
+          const options = videoCapable.mime ? { mimeType: videoCapable.mime } : undefined;
+          const mr = new MediaRecorder(stream, options);
+          recorderState.chunks = [];
+          recorderState.mimeType = videoCapable.mime || mr.mimeType || 'video/webm';
+          recorderState.ext = videoCapable.ext;
+          recorderState.recorder = mr;
+          recorderState.recording = true;
+          recorderState.canceled = false;
+
+          document.body.classList.add('recording-video');
+
+          mr.ondataavailable = ev => {
+            if (ev.data && ev.data.size > 0) recorderState.chunks.push(ev.data);
+          };
+          mr.onstop = () => {
+            const wasCanceled = recorderState.canceled;
+            const chunks = recorderState.chunks;
+            const mime = recorderState.mimeType;
+            const ext = recorderState.ext;
+            recorderState.recording = false;
+            recorderState.recorder = null;
+            recorderState.chunks = [];
+            document.body.classList.remove('recording-video');
+            updatePlaybackControlsUI();
+
+            if (!wasCanceled && chunks.length > 0) {
+              const blob = new Blob(chunks, { type: mime });
+              const url = URL.createObjectURL(blob);
+              const slug = (nameInput.value.trim() || 'asterism_motion').replace(/[\\/:*?"<>|]/g, '_');
+              const a = document.createElement('a');
+              a.download = `${slug}.${ext}`;
+              a.href = url;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(() => URL.revokeObjectURL(url), 1500);
+            }
+          };
+
+          mr.start(100);
+        } catch (err) {
+          console.warn('MediaRecorder start failed:', err);
+          recorderState.recording = false;
+          document.body.classList.remove('recording-video');
+        }
+      }
+
+      updatePlaybackControlsUI();
+    }
+
+    function stopPlayback(completedNormally = false) {
+      if (!playback.active && !recorderState.recording) return;
+      playback.active = false;
+      plateCaption.style.opacity = '';
+
+      if (recorderState.recording && recorderState.recorder) {
+        recorderState.canceled = !completedNormally;
+        if (recorderState.recorder.state !== 'inactive') {
+          recorderState.recorder.stop();
+        }
+      }
+      updatePlaybackControlsUI();
+    }
+
+    replayBtn.addEventListener('click', () => {
+      if (playback.active) stopPlayback(false);
+      else startPlayback(false);
+    });
+
+    recordVideoBtn.addEventListener('click', () => {
+      if (recorderState.recording) {
+        stopPlayback(false);
+      } else {
+        startPlayback(true);
+      }
+    });
 
     // --- UI制御 ---
     function syncOptionBarEmphasis() {
@@ -1923,7 +2954,10 @@
     }
 
     document.querySelectorAll('[data-mode]').forEach(btn => {
-      btn.addEventListener('click', () => setMode(btn.dataset.mode));
+      btn.addEventListener('click', () => {
+        dismissMarginNote();
+        setMode(btn.dataset.mode);
+      });
     });
 
     selectAllBtn.addEventListener('click', () => {
@@ -1940,6 +2974,7 @@
 
     document.querySelectorAll('#magGroup .mag-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        dismissMarginNote();
         document.querySelectorAll('#magGroup .mag-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentSize = parseFloat(btn.dataset.size);
@@ -1948,6 +2983,7 @@
 
     document.querySelectorAll('#spectralGroup .spectral-dot').forEach(dot => {
       dot.addEventListener('click', () => {
+        dismissMarginNote();
         document.querySelectorAll('#spectralGroup .spectral-dot').forEach(d => d.classList.remove('active'));
         dot.classList.add('active');
         currentColor = dot.dataset.color;
@@ -1956,57 +2992,99 @@
 
     document.querySelectorAll('#eraserGroup .eraser-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        dismissMarginNote();
         document.querySelectorAll('#eraserGroup .eraser-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         eraserRadius = parseFloat(btn.dataset.radius);
       });
     });
 
-    document.getElementById('scatterBtn').addEventListener('click', () => {
+    // 言霊星喚ポップオーバー開閉
+    function openCipherPopover() {
       if (isViewMode) return;
-      saveHistory();
-      const colors = ['#f2f6ff', '#9ec5ff', '#ffe7ba', '#ffb88c'];
-      const sizes = [5.2, 3.6, 3.6, 2.3, 2.3];
-      for (let i = 0; i < 11; i++) {
-        stars.push({
-          id: nextId++,
-          nx: (Math.random() - 0.5) * 0.62,
-          ny: (Math.random() - 0.5) * 0.48,
-          size: sizes[Math.floor(Math.random() * sizes.length)],
-          color: colors[Math.floor(Math.random() * colors.length)]
-        });
+      dismissMarginNote();
+      isCipherOpen = true;
+      cipherBackdrop.classList.add('open');
+      cipherPopover.classList.add('open');
+      if (currentSeedLabel && !currentSeedLabel.startsWith('SEED-')) {
+        cipherInput.value = currentSeedLabel;
       }
-      updateTelemetry();
-      setMode('connect');
+      setTimeout(() => cipherInput.focus(), 40);
+    }
+
+    function closeCipherPopover() {
+      isCipherOpen = false;
+      cipherBackdrop.classList.remove('open');
+      cipherPopover.classList.remove('open');
+      cipherInput.blur();
+    }
+
+    document.getElementById('scatterBtn').addEventListener('click', openCipherPopover);
+    document.getElementById('closeCipherBtn').addEventListener('click', closeCipherPopover);
+    cipherBackdrop.addEventListener('click', closeCipherPopover);
+
+    document.getElementById('summonCipherBtn').addEventListener('click', () => {
+      const val = cipherInput.value.trim();
+      if (!val) {
+        cipherInput.focus();
+        return;
+      }
+      generateStarsFromSeed(val, false);
+      closeCipherPopover();
+    });
+
+    cipherInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('summonCipherBtn').click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCipherPopover();
+      }
+    });
+
+    document.getElementById('randomScatterBtn').addEventListener('click', () => {
+      const seedId = `SEED-${Math.floor(1000 + Math.random() * 9000)}`;
+      generateStarsFromSeed(seedId, true);
+      closeCipherPopover();
     });
 
     undoBtn.addEventListener('click', undo);
 
     document.getElementById('clearBtn').addEventListener('click', () => {
       if (isViewMode || (stars.length === 0 && lines.length === 0)) return;
+      dismissMarginNote();
       saveHistory();
       stars = [];
       lines = [];
+      currentSeedLabel = '';
+      isolatedGuideMode = 'none';
       clearTransientStates();
       selectedStarIds.clear();
       updateTelemetry();
       syncSelectionUI();
     });
 
-    document.querySelectorAll('#gridToggle .seg-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#gridToggle .seg-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        showGrid = btn.dataset.val === 'on';
+    function setGridVisible(visible) {
+      showGrid = visible;
+      document.querySelectorAll('#gridToggle .seg-btn').forEach(b => {
+        b.classList.toggle('active', (b.dataset.val === 'on') === visible);
       });
+    }
+
+    function setLineStyleValue(styleVal) {
+      lineStyle = styleVal;
+      document.querySelectorAll('#lineStyleToggle .seg-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === styleVal);
+      });
+    }
+
+    document.querySelectorAll('#gridToggle .seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => setGridVisible(btn.dataset.val === 'on'));
     });
 
     document.querySelectorAll('#lineStyleToggle .seg-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#lineStyleToggle .seg-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        lineStyle = btn.dataset.val;
-      });
+      btn.addEventListener('click', () => setLineStyleValue(btn.dataset.val));
     });
 
     function setCollapsed(collapsed) {
@@ -2015,6 +3093,7 @@
     }
 
     inspectorToggle.addEventListener('click', () => {
+      dismissMarginNote();
       setCollapsed(!inspector.classList.contains('collapsed'));
     });
 
@@ -2023,11 +3102,36 @@
     }
 
     function updateCaption() {
-      captionTitle.textContent = nameInput.value.trim();
-      captionStory.textContent = storyInput.value.trim();
+      const t = nameInput.value.trim();
+      const s = storyInput.value.trim();
+      if (!t && !s) {
+        plateCaption.classList.add('empty');
+        captionTitle.textContent = isViewMode ? '' : '銘板に名を授ける';
+        captionStory.textContent = '';
+      } else {
+        plateCaption.classList.remove('empty');
+        captionTitle.textContent = t;
+        captionStory.textContent = s;
+      }
     }
     nameInput.addEventListener('input', updateCaption);
     storyInput.addEventListener('input', updateCaption);
+
+    // 銘板直接タップ導線
+    plateCaption.addEventListener('click', () => {
+      if (isViewMode || isModalActive()) return;
+      dismissMarginNote();
+      setCollapsed(false);
+      setTimeout(() => {
+        nameInput.focus();
+      }, 60);
+    });
+    plateCaption.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        plateCaption.click();
+      }
+    });
 
     [nameInput, storyInput].forEach(el => {
       el.addEventListener('focus', () => {
@@ -2042,18 +3146,34 @@
       });
     });
 
+    cipherInput.addEventListener('focus', () => {
+      isEditingText = true;
+      document.body.classList.add('editing-cipher');
+    });
+    cipherInput.addEventListener('blur', () => {
+      isEditingText = false;
+      document.body.classList.remove('editing-cipher');
+      window.scrollTo(0, 0);
+      setTimeout(resize, 120);
+    });
+
     function toggleViewMode(force) {
       const next = force !== undefined ? force : !isViewMode;
       isViewMode = next;
       document.body.classList.toggle('view-mode', isViewMode);
 
       if (isViewMode) {
+        dismissMarginNote();
+        closeCipherPopover();
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
         }
         clearTransientStates();
         isPointerInside = false;
+      } else {
+        stopPlayback(false);
       }
+      updateCaption();
       syncSelectionUI();
       updateCursor(lastPointerType !== 'mouse');
     }
@@ -2061,35 +3181,36 @@
     document.getElementById('viewBtn').addEventListener('click', () => toggleViewMode(true));
     document.getElementById('exitViewBtn').addEventListener('click', () => toggleViewMode(false));
 
-    // 4:3 (1600x1200) 固定アスペクト比でPNG書き出し
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      const expW = 1600;
-      const expH = 1200;
+    // --- 書き出し・プレビュー＆共有モーダル ---
+    function generatePlateBlob(ratioKey, callback) {
+      const preset = EXPORT_PRESETS[ratioKey] || EXPORT_PRESETS['4:3'];
+      const expW = preset.w;
+      const expH = preset.h;
       const offCanvas = document.createElement('canvas');
       offCanvas.width = expW;
       offCanvas.height = expH;
       const offCtx = offCanvas.getContext('2d');
 
-      // タイトルや覚え書きの高さに応じた安全領域を計算し、星が見切れないようスケールを決定
-      const m = 36;
+      const m = expW < 1150 ? 40 : 36;
       const title = nameInput.value.trim();
       const story = storyInput.value.trim();
+      const maxTextWidth = Math.min(740, expW - m * 2 - 72);
       let captionHeight = 0;
       if (story) {
         offCtx.font = '400 15px "Noto Sans JP", sans-serif';
-        captionHeight += wrapLines(offCtx, story, 740).length * 24;
+        captionHeight += wrapLines(offCtx, story, maxTextWidth, 4).length * 24;
       }
       if (title) {
         captionHeight += (story ? 18 : 0) + 34;
       }
 
-      const safeTop = m + 64;
-      const safeBottom = expH - m - 30 - captionHeight - (captionHeight > 0 ? 44 : 20);
-      const availX = expW / 2 - (m + 56);
+      const safeTop = m + 80;
+      const safeBottom = expH - m - 34 - captionHeight - (captionHeight > 0 ? 48 : 24);
+      const availX = expW / 2 - (m + 66);
       const availUp = expH / 2 - safeTop;
       const availDown = Math.max(120, safeBottom - expH / 2);
 
-      let exportScale = expH; // 基本スケール (1200)
+      let exportScale = Math.min(expW, expH) * (expH > expW ? 0.96 : 1.0);
       for (const s of stars) {
         if (Math.abs(s.nx) > 1e-5) {
           exportScale = Math.min(exportScale, availX / Math.abs(s.nx));
@@ -2104,34 +3225,168 @@
 
       renderToContext(offCtx, expW, expH, exportScale, frame, true);
 
-      const slug = (title || 'asterism_chart').replace(/[\\/:*?"<>|]/g, '_');
       if (offCanvas.toBlob) {
         offCanvas.toBlob(blob => {
-          if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.download = `${slug}.png`;
-          link.href = url;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => {
-            URL.revokeObjectURL(url);
-            offCanvas.width = 0;
-            offCanvas.height = 0;
-          }, 1000);
+          offCanvas.width = 0;
+          offCanvas.height = 0;
+          callback(blob);
         }, 'image/png');
       } else {
-        const link = document.createElement('a');
-        link.download = `${slug}.png`;
-        link.href = offCanvas.toDataURL('image/png');
-        link.click();
+        const dataUrl = offCanvas.toDataURL('image/png');
         offCanvas.width = 0;
         offCanvas.height = 0;
+        fetch(dataUrl).then(r => r.blob()).then(callback).catch(() => callback(null));
       }
+    }
+
+    function refreshExportPreview() {
+      generatePlateBlob(exportRatio, blob => {
+        if (!blob) return;
+        if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+        currentPreviewBlob = blob;
+        currentPreviewUrl = URL.createObjectURL(blob);
+        exportPreviewImg.src = currentPreviewUrl;
+      });
+    }
+
+    function openExportModal() {
+      dismissMarginNote();
+      closeCipherPopover();
+      isExportModalOpen = true;
+      exportModalBackdrop.classList.add('open');
+      refreshExportPreview();
+    }
+
+    function closeExportModal() {
+      isExportModalOpen = false;
+      exportModalBackdrop.classList.remove('open');
+      if (currentPreviewUrl) {
+        URL.revokeObjectURL(currentPreviewUrl);
+        currentPreviewUrl = null;
+      }
+      currentPreviewBlob = null;
+      exportPreviewImg.removeAttribute('src');
+    }
+
+    document.getElementById('exportBtn').addEventListener('click', openExportModal);
+    document.getElementById('closeExportModalBtn').addEventListener('click', closeExportModal);
+    exportModalBackdrop.addEventListener('click', e => {
+      if (e.target === exportModalBackdrop) closeExportModal();
     });
 
+    document.querySelectorAll('#ratioToggle .seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#ratioToggle .seg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        exportRatio = btn.dataset.ratio;
+        refreshExportPreview();
+      });
+    });
+
+    document.getElementById('downloadPlateBtn').addEventListener('click', () => {
+      if (!currentPreviewUrl) return;
+      const slug = (nameInput.value.trim() || 'asterism_chart').replace(/[\\/:*?"<>|]/g, '_');
+      const link = document.createElement('a');
+      link.download = `${slug}_${exportRatio.replace(':', 'x')}.png`;
+      link.href = currentPreviewUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // Web Share API（ファイル対応時は画像ごと共有、非対応時はテキスト＋URLへフォールバック）
+    const nativeShareBtn = document.getElementById('nativeShareBtn');
+    const nativeShareLabel = document.getElementById('nativeShareLabel');
+    nativeShareBtn.addEventListener('click', async () => {
+      const title = nameInput.value.trim() || 'ASTERISM — 天球製図室';
+      const shareUrl = buildChartShareUrl(false);
+      const text = `${title}\n#ASTERISM #この星を繋いで`;
+
+      if (navigator.share) {
+        try {
+          if (currentPreviewBlob && navigator.canShare) {
+            const slug = title.replace(/[\\/:*?"<>|]/g, '_');
+            const file = new File([currentPreviewBlob], `${slug}.png`, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ title, text, files: [file], url: shareUrl });
+              return;
+            }
+          }
+          await navigator.share({ title, text, url: shareUrl });
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+
+      // Web Share非対応時はURLコピーにフォールバック
+      copyTextWithFeedback(shareUrl, nativeShareLabel, 'SNSへ共有 / 送る', 'URLを複写しました');
+    });
+
+    async function copyTextWithFeedback(text, labelEl, origText, doneText) {
+      let copied = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        }
+      } catch (_) {}
+
+      if (!copied) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+          copied = document.execCommand('copy');
+        } catch (_) {}
+        document.body.removeChild(ta);
+      }
+
+      if (copied) {
+        labelEl.textContent = doneText;
+        clearTimeout(labelEl._timer);
+        labelEl._timer = setTimeout(() => {
+          labelEl.textContent = origText;
+        }, 1800);
+      }
+    }
+
+    const copyChartUrlBtn = document.getElementById('copyChartUrlBtn');
+    const copyChartUrlLabel = document.getElementById('copyChartUrlLabel');
+    copyChartUrlBtn.addEventListener('click', () => {
+      const url = buildChartShareUrl(false);
+      copyTextWithFeedback(url, copyChartUrlLabel, '星図URLをコピー', '複写しました');
+    });
+
+    const copyChallengeUrlBtn = document.getElementById('copyChallengeUrlBtn');
+    const copyChallengeUrlLabel = document.getElementById('copyChallengeUrlLabel');
+    copyChallengeUrlBtn.addEventListener('click', () => {
+      const url = buildChartShareUrl(true);
+      copyTextWithFeedback(url, copyChallengeUrlLabel, 'お題URLをコピー（線なし）', 'お題を複写しました');
+    });
+
+    // キーボードショートカット
     window.addEventListener('keydown', e => {
+      if (isExportModalOpen) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeExportModal();
+        }
+        return;
+      }
+
+      if (isCipherOpen) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeCipherPopover();
+        }
+        return;
+      }
+
       if (document.activeElement === nameInput || document.activeElement === storyInput) return;
 
       if (isViewMode) {
@@ -2151,11 +3406,11 @@
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && mode === 'select' && selectedStarIds.size > 0) {
         e.preventDefault();
         deleteSelectedStars();
-      } else if (e.key === '1') setMode('place');
-      else if (e.key === '2') setMode('move');
-      else if (e.key === '3') setMode('select');
-      else if (e.key === '4') setMode('connect');
-      else if (e.key === '5') setMode('erase');
+      } else if (e.key === '1') { dismissMarginNote(); setMode('place'); }
+      else if (e.key === '2') { dismissMarginNote(); setMode('move'); }
+      else if (e.key === '3') { dismissMarginNote(); setMode('select'); }
+      else if (e.key === '4') { dismissMarginNote(); setMode('connect'); }
+      else if (e.key === '5') { dismissMarginNote(); setMode('erase'); }
       else if (e.key.toLowerCase() === 'h') toggleViewMode(true);
       else if (e.key === 'Escape') {
         clearTransientStates();
@@ -2166,24 +3421,32 @@
       }
     });
 
+    // 初期星図（「あと1本で完成する未完の星座」）
     function initInitialChart() {
+      stars = [];
+      lines = [];
+      nextId = 1;
       const initialStars = [
-        { nx: -0.18, ny: -0.14, size: 3.6, color: '#9ec5ff' },
-        { nx: -0.07, ny: -0.06, size: 5.2, color: '#f2f6ff' },
-        { nx:  0.04, ny: -0.13, size: 3.6, color: '#ffe7ba' },
-        { nx:  0.14, ny: -0.04, size: 3.6, color: '#f2f6ff' },
-        { nx:  0.02, ny:  0.08, size: 2.3, color: '#ffb88c' }
+        { nx: -0.22, ny: -0.05, size: 3.6, color: '#9ec5ff' },
+        { nx: -0.09, ny: -0.08, size: 3.6, color: '#f2f6ff' },
+        { nx:  0.03, ny: -0.02, size: 5.2, color: '#f2f6ff' },
+        { nx:  0.00, ny:  0.14, size: 3.6, color: '#ffe7ba' },
+        { nx:  0.14, ny: -0.13, size: 3.6, color: '#f2f6ff' },
+        { nx:  0.25, ny: -0.19, size: 5.2, color: '#ffe7ba' } // 孤立星（最後の1星）
       ];
       initialStars.forEach(s => stars.push({ id: nextId++, ...s }));
       lines = [
         { from: 1, to: 2 },
         { from: 2, to: 3 },
         { from: 3, to: 4 },
-        { from: 2, to: 5 }
+        { from: 3, to: 5 }
       ];
-      nameInput.value = '無名星図 I';
-      storyInput.value = '';
+      currentSeedLabel = '';
+      isolatedGuideMode = 'isolated';
+      nameInput.value = '白鳥の片翼';
+      storyInput.value = '真夜中、観測窓の隅で最後の一星が結ばれるのを待っている。';
       updateCaption();
+      setMode('connect');
       updateTelemetry();
     }
 
@@ -2200,12 +3463,17 @@
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', resize);
     }
+    window.addEventListener('hashchange', () => {
+      loadFromUrlHash();
+    });
 
     resize();
+    pointerPos = { x: width / 2, y: height / 2 };
+    if (!loadFromUrlHash()) {
+      initInitialChart();
+    }
     syncOptionBarEmphasis();
     syncSelectionUI();
-    pointerPos = { x: width / 2, y: height / 2 };
-    initInitialChart();
     loop();
   </script>
 </body>
